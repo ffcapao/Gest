@@ -1,6 +1,6 @@
 /* Gest - service worker: deixa a app abrir sem internet.
    Estratégia: tenta a rede primeiro (para receber atualizações) e usa a cópia guardada se estiver offline. */
-const CACHE = 'gest-v2';
+const CACHE = 'gest-v3';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', e => {

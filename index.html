@@ -173,6 +173,7 @@ textarea.field{height:110px;padding:12px 14px;font:16px/1.4 system-ui;text-align
 
 /* ---------- constantes e estado ---------- */
 const SEP = '::ID::';
+const newId = () => 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 const PALETTE = [
   {bg:'#0369A1',fg:'#E0F2FE'},{bg:'#6D28D9',fg:'#EDE9FE'},{bg:'#B45309',fg:'#FEF3C7'},{bg:'#047857',fg:'#D1FAE5'},
   {bg:'#BE185D',fg:'#FCE7F3'},{bg:'#4338CA',fg:'#E0E7FF'},{bg:'#0F766E',fg:'#CCFBF1'},{bg:'#9A3412',fg:'#FFEDD5'}
@@ -193,6 +194,8 @@ const S = {
   view: 'folders', path: [], tagFilter: null, query: '', highlight: null
 };
 if (!S.tags || !Array.isArray(S.tags.library)) S.tags = {library: [], assignments: {}};
+// alterações feitas antes desta versão não têm 'id': dão-se-lhes um, para não serem importadas duas vezes
+if (Array.isArray(S.log) && S.log.some(e => e && !e.id)) { S.log.forEach(e => { if (e && !e.id) e.id = newId(); }); save(K.log, S.log); }
 
 /* ---------- utilitários de dados ---------- */
 const isFolder = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -329,7 +332,8 @@ function applyQty(path, newQty, silent) {
   if (before === newQty) return false;
   parent[key] = newQty;
   const entry = {ts: nowStr(), tipo: 'qtd', alvo: 'peça', item: display(key), caminho: path.slice(0, -1).join(' > '),
-                 antes: before, depois: newQty, detalhe: '', nota: '', origem: 'telemovel'};
+                 antes: before, depois: newQty, detalhe: '', nota: '', origem: 'telemovel',
+                 id: newId(), chave: path.slice()};
   S.log.push(entry);
   save(K.inv, S.inv); save(K.log, S.log);
   lastChange = {path, before, entry};
@@ -458,17 +462,14 @@ function download(name, text) {
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
-function exportInv() {
-  if (!S.inv) return;
-  download('inventario.json', JSON.stringify(S.inv, null, 4));
-  S.meta.exportedLen = S.log.length; save(K.meta, S.meta);
-  toast('Exportado: inventario.json. Procure-o nas Transferências do telemóvel.');
-  render(true);
-}
+// único botão de exportação: só as alterações (o PC soma-as; nunca se substitui o inventário do PC)
 function exportLog() {
-  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel (telemóvel)', guardado: nowStr(), entries: S.log};
+  if (!S.log.length) return;
+  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel (telemóvel)', guardado: nowStr(), versao: 2, entries: S.log};
   download('alteracoes_telemovel.json', JSON.stringify(data, null, 4));
+  S.meta.exportedLen = S.log.length; save(K.meta, S.meta);
   toast('Exportado: alteracoes_telemovel.json');
+  render(true);
 }
 async function resetToImported() {
   if (!S.base) return;
@@ -487,7 +488,7 @@ function openMenu() {
   const close = openSheet([
     h('h3', null, 'Menu'),
     item('upload', 'Importar ficheiros', 'inventario.json e tags.json do PC', pickFiles),
-    item('download', 'Exportar inventario.json', S.inv ? 'Com as alterações feitas aqui' : 'Importe primeiro', () => S.inv && exportInv()),
+    item('download', 'Exportar alterações', S.log.length ? `${pending()} por exportar` : 'Sem alterações', () => S.log.length && exportLog()),
     item('help', 'Como funciona', null, openHelp)
   ]);
 }
@@ -497,7 +498,7 @@ function openHelp() {
     h('p', null, 'Esta app guarda uma cópia do seu inventário só neste telemóvel. Nada é enviado para a internet.'),
     h('p', null, '1. No PC, copie o inventario.json e o tags.json (pasta "Base de Dados") para o telemóvel e importe-os aqui.'),
     h('p', null, '2. Consulte e ajuste quantidades com + e −. Cada alteração fica registada.'),
-    h('p', null, '3. Para levar as alterações de volta, exporte o inventario.json e coloque-o na pasta do PC.'),
+    h('p', null, '3. Para levar as alterações de volta ao PC, use "Exportar alterações" (alteracoes_telemovel.json). No PC, na janela do Histórico, carregue em "Importar telemóvel".'),
     h('p', {class: 'sub'}, 'Atenção: se alterar o inventário no PC e no telemóvel ao mesmo tempo, os ficheiros divergem. Escolha sempre qual a versão que fica.'),
     h('button', {class: 'btn gray block', type: 'button', onclick: () => close()}, 'Fechar')
   ]);
@@ -634,8 +635,7 @@ function viewChanges() {
     ? `${S.log.length} alteração(ões) feitas neste telemóvel` + (n ? `, ${n} por exportar.` : '. Todas exportadas.')
     : 'Ainda não fez alterações neste telemóvel.'));
   els.push(h('div', {class: 'row'},
-    h('button', {class: 'btn green', type: 'button', onclick: exportInv}, svg(ICON.download, 20), 'Exportar inventario.json'),
-    h('button', {class: 'btn gray', type: 'button', onclick: exportLog, disabled: !S.log.length}, 'Exportar alterações')));
+    h('button', {class: 'btn green', type: 'button', onclick: exportLog, disabled: !S.log.length}, svg(ICON.download, 20), 'Exportar alterações')));
   if (S.log.length) els.push(h('button', {class: 'btn red block', type: 'button', onclick: resetToImported}, 'Repor ao ficheiro importado'));
   for (const e of S.log.slice().reverse()) {
     const d = e.depois - e.antes;
