@@ -1,6 +1,6 @@
 {
-  "name": "GKever Inventário",
-  "short_name": "GKever",
+  "name": "Gest",
+  "short_name": "Gest",
   "description": "Consulta e ajuste de inventário, guardado só neste telemóvel.",
   "lang": "pt-PT",
   "start_url": "./",

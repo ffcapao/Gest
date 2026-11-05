@@ -7,11 +7,11 @@
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="GKever">
+<meta name="apple-mobile-web-app-title" content="Gest">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>GKever</title>
+<title>Gest</title>
 <style>
 :root{
   --bg:#2B2B2B; --panel:#18181B; --card:#262121; --card-hover:#2e2828; --folder:#27272A; --line:#3F3F46;
@@ -148,7 +148,7 @@ textarea.field{height:110px;padding:12px 14px;font:16px/1.4 system-ui;text-align
 <div class="app">
   <header class="top">
     <div class="top-row">
-      <div class="brand">GKever<small id="subtitle">Inventário</small></div>
+      <div class="brand">Gest<small id="subtitle">Inventário</small></div>
       <button class="icon-btn" id="btn-menu" aria-label="Menu" type="button">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
@@ -423,7 +423,7 @@ async function importFiles(files) {
       if (kind === 'inv') { inv = d; invName = f.name; }
       else if (kind === 'tags') tags = d;
       else if (kind === 'hist') problems.push(`${f.name}: é um ficheiro de histórico, não de inventário.`);
-      else problems.push(`${f.name}: não parece ser um inventario.json nem um tags.json do GKever.`);
+      else problems.push(`${f.name}: não parece ser um inventario.json nem um tags.json.`);
     } catch (e) { problems.push(`${f.name}: não é um ficheiro JSON válido.`); }
   }
   if (!inv && !tags) {
@@ -466,7 +466,7 @@ function exportInv() {
   render(true);
 }
 function exportLog() {
-  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel (GKever Mobile)', guardado: nowStr(), entries: S.log};
+  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel (telemóvel)', guardado: nowStr(), entries: S.log};
   download('alteracoes_telemovel.json', JSON.stringify(data, null, 4));
   toast('Exportado: alteracoes_telemovel.json');
 }
@@ -540,7 +540,7 @@ function goToPiece(p) {
 
 function viewWelcome() {
   main.replaceChildren(h('div', {class: 'welcome'},
-    h('h1', null, 'Bem-vindo ao GKever'),
+    h('h1', null, 'Bem-vindo ao Gest'),
     h('p', null, 'Para começar, importe os ficheiros do inventário que tem no PC.'),
     h('ol', null,
       h('li', null, 'No PC, abra a pasta "Base de Dados".'),
