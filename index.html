@@ -83,6 +83,26 @@ main{flex:1;padding:12px var(--gutter) calc(88px + var(--safe-b));display:grid;g
 .btn.block{width:100%}
 .row{display:flex;gap:8px;flex-wrap:wrap}.row>.btn{flex:1 1 150px}
 
+/* lotes e kits */
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+button.chip{cursor:pointer}
+.chip.lot{background:none;border:1px solid var(--teal);color:#5EEAD4;font-weight:600}
+.chip.kit{background:none;border:1px solid #7C3AED;color:#C4B5FD;font-weight:600}
+.kitc{display:grid;gap:4px;width:100%;text-align:left;background:var(--folder);min-height:56px}
+.kitc .l1{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.kitc .nm{font-weight:650;color:var(--blue-hi);overflow-wrap:anywhere}
+.kitc .meta{font-size:12.5px;color:var(--muted)}
+.st{font-size:12.5px;font-weight:700;white-space:nowrap}.st.ok{color:var(--green)}.st.bad{color:var(--red)}.st.warn{color:var(--amber)}
+.comp{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #3a3a40}
+.comp .q{min-width:40px;font-weight:700;color:var(--amber);white-space:nowrap}
+.comp .tx{flex:1;min-width:0;display:grid;gap:2px;text-align:left}
+.comp .tx .nm{font-weight:600;overflow-wrap:anywhere}
+.comp .tx small{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.comp .have{font-size:12.5px;font-weight:700;white-space:nowrap}
+.panel{background:var(--folder);border-radius:var(--radius);padding:4px 14px}
+.lotline{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #3a3a40}
+.lotline:first-child,.comp:first-child{border-top:0}
+
 /* resumo */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .stat{background:var(--panel);border-radius:var(--radius);padding:10px 12px}
@@ -107,8 +127,8 @@ main{flex:1;padding:12px var(--gutter) calc(88px + var(--safe-b));display:grid;g
 
 /* navegação inferior */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--panel);border-top:1px solid #000;display:flex;justify-content:center;padding-bottom:var(--safe-b)}
-nav.tabs .in{width:100%;max-width:720px;display:grid;grid-template-columns:repeat(4,1fr)}
-.tab{height:62px;display:grid;justify-items:center;align-content:center;gap:2px;color:var(--dim);font-size:11.5px;font-weight:650;position:relative}
+nav.tabs .in{width:100%;max-width:720px;display:grid;grid-template-columns:repeat(5,1fr)}
+.tab{height:62px;display:grid;justify-items:center;align-content:center;gap:2px;color:var(--dim);font-size:11px;font-weight:650;position:relative}
 .tab[aria-current="page"]{color:var(--blue-hi)}
 .tab:active{background:#222}
 
@@ -178,7 +198,7 @@ const PALETTE = [
   {bg:'#0369A1',fg:'#E0F2FE'},{bg:'#6D28D9',fg:'#EDE9FE'},{bg:'#B45309',fg:'#FEF3C7'},{bg:'#047857',fg:'#D1FAE5'},
   {bg:'#BE185D',fg:'#FCE7F3'},{bg:'#4338CA',fg:'#E0E7FF'},{bg:'#0F766E',fg:'#CCFBF1'},{bg:'#9A3412',fg:'#FFEDD5'}
 ];
-const K = {inv:'gkever.inv', base:'gkever.base', tags:'gkever.tags', log:'gkever.log', meta:'gkever.meta'};
+const K = {inv:'gkever.inv', base:'gkever.base', tags:'gkever.tags', log:'gkever.log', meta:'gkever.meta', lots:'gkever.lots', kits:'gkever.kits'};
 let storageWarned = false;
 
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
@@ -191,11 +211,133 @@ const S = {
   inv: load(K.inv, null), base: load(K.base, null),
   tags: load(K.tags, {library: [], assignments: {}}),
   log: load(K.log, []), meta: load(K.meta, {importedAt: null, exportedLen: 0}),
-  view: 'folders', path: [], tagFilter: null, query: '', highlight: null
+  lots: load(K.lots, {}), kits: load(K.kits, {}),
+  view: 'folders', path: [], kit: null, tagFilter: null, query: '', highlight: null
 };
 if (!S.tags || !Array.isArray(S.tags.library)) S.tags = {library: [], assignments: {}};
 // alterações feitas antes desta versão não têm 'id': dão-se-lhes um, para não serem importadas duas vezes
 if (Array.isArray(S.log) && S.log.some(e => e && !e.id)) { S.log.forEach(e => { if (e && !e.id) e.id = newId(); }); save(K.log, S.log); }
+
+/* ---------- lotes e kits (mesmas regras do PC: app_lotes.py / app_kits.py) ---------- */
+// JSON.parse reordena chaves que sejam números ("10" antes de "2"), o que estragaria o FIFO dos lotes:
+// por isso a ordem dos lotes lê-se do texto e guarda-se como lista de pares [lote, qtd].
+function parseOrdered(text) {
+  let i = 0;
+  const ws = () => { while (i < text.length && ' \t\n\r'.includes(text[i])) i++; };
+  const str = () => { const a = i; i++; while (text[i] !== '"') { if (text[i] === '\\') i++; i++; } i++; return JSON.parse(text.slice(a, i)); };
+  function val() {
+    ws(); const c = text[i];
+    if (c === '{') {
+      i++; const out = {pairs: []}; ws();
+      if (text[i] === '}') { i++; return out; }
+      for (;;) { ws(); const k = str(); ws(); i++; out.pairs.push([k, val()]); ws(); if (text[i++] === '}') return out; }
+    }
+    if (c === '[') {
+      i++; const out = []; ws();
+      if (text[i] === ']') { i++; return out; }
+      for (;;) { out.push(val()); ws(); if (text[i++] === ']') return out; }
+    }
+    if (c === '"') return str();
+    const m = /^(-?\d+(\.\d+)?([eE][+-]?\d+)?|true|false|null)/.exec(text.slice(i, i + 40));
+    i += m[0].length; return JSON.parse(m[0]);
+  }
+  return val();
+}
+function readLots(text, d) {
+  let src = null;
+  try { const p = parseOrdered(text).pairs.find(x => x[0] === 'lots'); if (p && p[1].pairs) src = p[1].pairs; } catch (e) { src = null; }
+  if (!src) src = Object.entries(isFolder(d.lots) ? d.lots : {}).map(([k, v]) => [k, {pairs: isFolder(v) ? Object.entries(v) : []}]);
+  const out = {};
+  for (const [k, v] of src) {
+    if (!v || !v.pairs) continue;
+    const pairs = v.pairs.filter(([n, q]) => Number.isInteger(q) && q > 0);
+    if (pairs.length) out[k] = pairs;
+  }
+  return out;
+}
+function readKits(d) {
+  const out = {};
+  if (!isFolder(d.kits)) return out;
+  for (const [name, k] of Object.entries(d.kits)) {
+    if (!k || !Array.isArray(k.componentes)) continue;
+    out[name] = {componentes: k.componentes.filter(c => c && typeof c === 'object').map(c => {
+      const q = parseInt(c.qtd, 10); const qtd = q > 0 ? q : 1;
+      return c.tipo === 'kit' ? {tipo: 'kit', nome: String(c.nome || ''), qtd} : {tipo: 'peca', caminho: String(c.caminho || ''), qtd};
+    })};
+  }
+  return out;
+}
+const kitNames = () => Object.keys(S.kits).sort(cmp);
+function pieceExists(key) {
+  const p = key.split('\n'), n = getNode(p.slice(0, -1));
+  return isFolder(n) && p[p.length - 1] in n && !isFolder(n[p[p.length - 1]]);
+}
+function pieceQty(key) {
+  if (!pieceExists(key)) return 0;
+  const p = key.split('\n'); return Number(getNode(p.slice(0, -1))[p[p.length - 1]]) || 0;
+}
+// lotes da peça, sempre coerentes com o total (se o total é menor, corta-se dos mais antigos)
+function pieceLots(path) {
+  const stored = S.lots[pkey(path)];
+  if (!stored) return [];
+  let excess = stored.reduce((a, x) => a + x[1], 0) - pieceQty(pkey(path));
+  const out = [];
+  for (let [n, q] of stored) {
+    if (excess > 0) { const cut = Math.min(q, excess); q -= cut; excess -= cut; }
+    if (q > 0) out.push([n, q]);
+  }
+  return out;
+}
+const lotsFree = (path, lots) => pieceQty(pkey(path)) - lots.reduce((a, x) => a + x[1], 0);
+function lotChipTexts(path) {
+  const lots = pieceLots(path);
+  if (!lots.length) return [];
+  if (lots.length === 1 && lotsFree(path, lots) === 0) return ['Lote ' + lots[0][0]];
+  if (lots.length <= 2) return lots.map(([n, q]) => `${n} · ${q}`);
+  return [lots.length + ' lotes'];
+}
+// peças que um kit leva, com os kits lá dentro já desdobrados: {req: Map(chave → qtd), problems}
+function kitFlat(name, stack = []) {
+  const req = new Map(), problems = [];
+  const kit = S.kits[name];
+  if (!kit || stack.includes(name)) return {req, problems: [`kit '${name}' em falta ou em ciclo`]};
+  for (const c of kit.componentes) {
+    const q = c.qtd || 1;
+    if (c.tipo === 'kit') {
+      const sub = kitFlat(c.nome, stack.concat(name));
+      problems.push(...sub.problems);
+      for (const [k, v] of sub.req) req.set(k, (req.get(k) || 0) + v * q);
+    } else req.set(c.caminho, (req.get(c.caminho) || 0) + q);
+  }
+  return {req, problems};
+}
+function kitStatus(name, n = 1) {
+  const {req, problems} = kitFlat(name);
+  let can = null; const falta = [];
+  for (const [k, need1] of req) {
+    const have = pieceQty(k);
+    if (!pieceExists(k)) problems.push(`peça '${display(k.split('\n').pop())}' já não existe`);
+    const c = need1 ? Math.floor(have / need1) : 0;
+    can = can === null ? c : Math.min(can, c);
+    if (have < need1 * n) falta.push({nome: display(k.split('\n').pop()), tem: have, precisa: need1 * n});
+  }
+  return {can: can || 0, falta, problems, empty: req.size === 0};
+}
+let kitIdx = null;
+function kitsUsingPiece(key) {
+  if (!kitIdx) {
+    kitIdx = new Map();
+    for (const name of kitNames()) for (const [k, q] of kitFlat(name).req) if (q) { if (!kitIdx.has(k)) kitIdx.set(k, []); kitIdx.get(k).push([name, q]); }
+  }
+  return kitIdx.get(key) || [];
+}
+function kitStatusInfo(name) {
+  const s = kitStatus(name);
+  if (s.empty) return {txt: 'receita vazia', cls: 'warn', s};
+  if (s.problems.length) return {txt: 'receita com problemas', cls: 'warn', s};
+  if (s.can > 0) return {txt: 'dá para montar ' + s.can, cls: 'ok', s};
+  return {txt: 'falta material', cls: 'bad', s};
+}
 
 /* ---------- utilitários de dados ---------- */
 const isFolder = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -273,6 +415,7 @@ const svg = (inner, size = 22) => { const w = h('span'); w.innerHTML = `<svg wid
 const ICON = {
   folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   tag: '<path d="M20 13l-7 7-9-9V4h7z"/><circle cx="8" cy="8" r="1.3"/>',
+  kit: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
   chart: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
   list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
   chev: '<path d="M9 6l6 6-6 6"/>',
@@ -418,14 +561,15 @@ function detect(d) {
   return null;
 }
 async function importFiles(files) {
-  let inv = null, tags = null, invName = '';
+  let inv = null, tags = null, tagsText = '', invName = '';
   const problems = [];
   for (const f of files) {
     try {
-      const d = JSON.parse(await f.text());
+      const text = await f.text();
+      const d = JSON.parse(text);
       const kind = detect(d);
       if (kind === 'inv') { inv = d; invName = f.name; }
-      else if (kind === 'tags') tags = d;
+      else if (kind === 'tags') { tags = d; tagsText = text; }
       else if (kind === 'hist') problems.push(`${f.name}: é um ficheiro de histórico, não de inventário.`);
       else problems.push(`${f.name}: não parece ser um inventario.json nem um tags.json.`);
     } catch (e) { problems.push(`${f.name}: não é um ficheiro JSON válido.`); }
@@ -448,11 +592,12 @@ async function importFiles(files) {
   }
   if (tags) {
     S.tags = {library: tags.library.filter(t => typeof t === 'string'), assignments: tags.assignments};
-    save(K.tags, S.tags);
+    S.lots = readLots(tagsText, tags); S.kits = readKits(tags); kitIdx = null; S.kit = null;
+    save(K.tags, S.tags); save(K.lots, S.lots); save(K.kits, S.kits);
   }
   const parts = [];
   if (inv) parts.push(`inventário (${stats(S.inv).pieces} peças)`);
-  if (tags) parts.push(`tags (${S.tags.library.length})`);
+  if (tags) parts.push(`tags (${S.tags.library.length}), kits (${kitNames().length}), peças com lotes (${Object.keys(S.lots).length})`);
   toast('Importado: ' + parts.join(' e ') + (problems.length ? '. Ignorados: ' + problems.length : '.'));
   render();
 }
@@ -465,10 +610,10 @@ function download(name, text) {
 // único botão de exportação: só as alterações (o PC soma-as; nunca se substitui o inventário do PC)
 function exportLog() {
   if (!S.log.length) return;
-  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel (telemóvel)', guardado: nowStr(), versao: 2, entries: S.log};
+  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel', guardado: nowStr(), versao: 2, entries: S.log};
   download('alteracoes_telemovel.json', JSON.stringify(data, null, 4));
   S.meta.exportedLen = S.log.length; save(K.meta, S.meta);
-  toast('Exportado: alteracoes_telemovel.json');
+  toast('Exportado. Próximo passo: no PC, importe este ficheiro (Histórico → Importar telemóvel) e depois envie-lhe o inventario.json atualizado.', {label: 'Entendi', fn: () => {}});
   render(true);
 }
 async function resetToImported() {
@@ -497,6 +642,7 @@ function openHelp() {
     h('h3', null, 'Como funciona'),
     h('p', null, 'Esta app guarda uma cópia do seu inventário só neste telemóvel. Nada é enviado para a internet.'),
     h('p', null, '1. No PC, copie o inventario.json e o tags.json (pasta "Base de Dados") para o telemóvel e importe-os aqui.'),
+    h('p', null, 'No separador Kits vê as receitas e quantos kits dá para montar com o stock atual; as peças mostram os seus lotes (toque no lote para ver o detalhe). Por agora isto é só consulta.'),
     h('p', null, '2. Consulte e ajuste quantidades com + e −. Cada alteração fica registada.'),
     h('p', null, '3. Para levar as alterações de volta ao PC, use "Exportar alterações" (alteracoes_telemovel.json). No PC, na janela do Histórico, carregue em "Importar telemóvel".'),
     h('p', {class: 'sub'}, 'Atenção: se alterar o inventário no PC e no telemóvel ao mesmo tempo, os ficheiros divergem. Escolha sempre qual a versão que fica.'),
@@ -507,6 +653,31 @@ function openHelp() {
 /* ---------- vistas ---------- */
 const main = document.getElementById('main');
 
+function pieceChips(p) {
+  const out = [];
+  const open = () => openPiece(p.path);
+  for (const t of lotChipTexts(p.path)) out.push(h('button', {class: 'chip lot', type: 'button', onclick: open}, t));
+  const ks = kitsUsingPiece(pkey(p.path));
+  if (ks.length && ks.length <= 2) for (const [n] of ks) out.push(h('button', {class: 'chip kit', type: 'button', onclick: open}, (/^kit\b/i.test(n) ? n : 'Kit ' + n)));
+  else if (ks.length) out.push(h('button', {class: 'chip kit', type: 'button', onclick: open}, ks.length + ' kits'));
+  return out.length ? h('div', {class: 'chips'}, ...out) : null;
+}
+function openKit(name) { clearSearch(false); S.view = 'kits'; S.kit = name; S.tagFilter = null; render(); window.scrollTo(0, 0); }
+function openPiece(path) {
+  const key = pkey(path), lots = pieceLots(path), free = lotsFree(path, lots), ks = kitsUsingPiece(key);
+  const close = openSheet([
+    h('div', null, h('h3', null, display(path[path.length - 1])), h('div', {class: 'sub'}, path.slice(0, -1).join(' › ') || 'Raiz')),
+    h('div', {class: 'preview'}, 'Total: ', h('b', null, pieceQty(key))),
+    lots.length ? h('div', null, h('div', {class: 'h2'}, 'Lotes'),
+      h('div', {class: 'panel'}, ...lots.map(([n, q]) => h('div', {class: 'lotline'}, h('span', null, 'Lote ' + n), h('b', null, q))),
+        free > 0 ? h('div', {class: 'lotline'}, h('span', {style: 'color:var(--muted)'}, 'Sem lote'), h('b', null, free)) : null)) : h('div', {class: 'sub'}, 'Esta peça não tem lotes.'),
+    ks.length ? h('div', null, h('div', {class: 'h2'}, 'Usada nos kits'),
+      ...ks.map(([n, q]) => h('button', {class: 'card kitc', type: 'button', onclick: () => { close(); openKit(n); }},
+        h('div', {class: 'l1'}, h('span', {class: 'nm'}, n), h('span', {class: 'st ok'}, q + ' por kit'))))) : null,
+    h('button', {class: 'btn gray block', type: 'button', onclick: () => close()}, 'Fechar')
+  ]);
+}
+
 function pieceCard(p, showPath) {
   const tag = tagOf(p.path);
   const flash = S.highlight && S.highlight === pkey(p.path);
@@ -516,7 +687,7 @@ function pieceCard(p, showPath) {
     ? h('button', {class: 'p-name', type: 'button', onclick: () => goToPiece(p)}, display(p.key))
     : h('div', {class: 'p-name'}, display(p.key));
   return h('div', {class: 'card piece' + (flash ? ' flash' : ''), 'data-pk': pkey(p.path)},
-    h('div', {class: 'p-info'}, nameEl, tag ? chip(tag) : null, showPath ? h('div', {class: 'p-path'}, p.path.slice(0, -1).join(' › ')) : null),
+    h('div', {class: 'p-info'}, nameEl, tag ? chip(tag) : null, pieceChips(p), showPath ? h('div', {class: 'p-path'}, p.path.slice(0, -1).join(' › ')) : null),
     h('div', {class: 'ctrl'},
       h('button', {class: 'minus', type: 'button', 'aria-label': 'Retirar de ' + display(p.key), onclick: () => openQty(p.path, 'sub')}, '−'),
       h('button', {class: 'qty' + (qty === 0 ? ' zero' : ''), type: 'button', 'aria-label': `Quantidade ${qty}. Definir`, onclick: () => openQty(p.path, 'set')}, String(qty)),
@@ -575,15 +746,66 @@ function viewFolders() {
   main.replaceChildren(...els);
 }
 
+function compRows(name, mult, depth, stack) {
+  const out = [], pad = `padding-left:${depth * 16}px`;
+  for (const c of S.kits[name].componentes) {
+    const q = (c.qtd || 1) * mult;
+    if (c.tipo === 'kit') {
+      const ok = S.kits[c.nome] && !stack.includes(c.nome) && c.nome !== name;
+      out.push(h('div', {class: 'comp', style: pad}, h('div', {class: 'q'}, q + '×'),
+        h('div', {class: 'tx'}, h('span', {class: 'nm', style: 'color:var(--purple)'}, 'Kit · ' + c.nome), ok ? null : h('small', {style: 'color:var(--red)'}, 'kit em falta ou em círculo'))));
+      if (ok) out.push(...compRows(c.nome, q, depth + 1, stack.concat(name)));
+    } else {
+      const ex = pieceExists(c.caminho), have = pieceQty(c.caminho), good = ex && have >= q;
+      const parts = c.caminho.split('\n');
+      out.push(h('div', {class: 'comp', style: pad}, h('div', {class: 'q'}, q + '×'),
+        h('div', {class: 'tx'},
+          ex ? h('button', {class: 'nm', type: 'button', style: 'text-align:left;color:var(--text-strong)', onclick: () => openPiece(parts)}, display(parts[parts.length - 1]))
+             : h('span', {class: 'nm', style: 'color:var(--red)'}, display(parts[parts.length - 1]) + '  (já não existe)'),
+          h('small', null, parts.slice(0, -1).join(' › ') || 'Raiz')),
+        h('div', {class: 'have', style: `color:var(--${good ? 'green' : 'red'})`}, ex ? 'tem ' + have : '—')));
+    }
+  }
+  return out;
+}
+function viewKits() {
+  const names = kitNames();
+  if (S.kit && !S.kits[S.kit]) S.kit = null;
+  if (S.kit) {
+    const name = S.kit, st = kitStatusInfo(name), s = st.s;
+    const els = [
+      h('div', {class: 'row', style: 'align-items:center;justify-content:space-between;flex-wrap:nowrap'},
+        h('button', {class: 'crumb', type: 'button', onclick: () => { S.kit = null; render(); window.scrollTo(0, 0); }}, '‹ Todos os kits'),
+        h('span', {class: 'st ' + st.cls}, st.txt)),
+      h('h2', {style: 'margin:6px 2px 0;font-size:20px;color:var(--text-strong);overflow-wrap:anywhere'}, name)];
+    if (s.problems.length) els.push(h('div', {class: 'hint', style: 'color:var(--amber)'}, [...new Set(s.problems)].join(' · ')));
+    else if (s.falta.length) els.push(h('div', {class: 'hint', style: 'color:var(--red)'}, 'Para 1 kit falta: ' + s.falta.map(f => `${f.nome} (tem ${f.tem}, precisa de ${f.precisa})`).join('; ')));
+    els.push(h('div', {class: 'h2'}, 'Receita'));
+    els.push(S.kits[name].componentes.length ? h('div', {class: 'panel'}, ...compRows(name, 1, 0, [])) : h('div', {class: 'hint'}, 'A receita está vazia.'));
+    main.replaceChildren(...els);
+    return;
+  }
+  if (!names.length) { main.replaceChildren(h('div', {class: 'empty'}, 'Ainda não há kits. Importe o tags.json do PC.')); return; }
+  main.replaceChildren(h('div', {class: 'hint'}, 'Toque num kit para ver a receita.'),
+    ...names.map(n => { const st = kitStatusInfo(n), c = S.kits[n].componentes.length;
+      return h('button', {class: 'card kitc', type: 'button', onclick: () => { S.kit = n; render(); window.scrollTo(0, 0); }},
+        h('div', {class: 'l1'}, h('span', {class: 'nm'}, n), svg(ICON.chev, 18)),
+        h('div', {class: 'l1'}, h('span', {class: 'meta'}, `${c} componente${c === 1 ? '' : 's'}`), h('span', {class: 'st ' + st.cls}, st.txt))); }));
+}
+
 function viewSearch() {
   const toks = queryTokens(S.query);
   const fol = allFolders().filter(f => { const hs = haystack(f.path.join(' ')); return toks.every(t => hs.includes(t)); });
   const pcs = allPieces().filter(p => {
-    const hs = haystack(p.path.map(display).join(' ') + ' ' + (tagOf(p.path) || ''));
+    const hs = haystack(p.path.map(display).join(' ') + ' ' + (tagOf(p.path) || '') + ' ' + pieceLots(p.path).map(x => 'Lote ' + x[0]).join(' ') + ' ' + kitsUsingPiece(pkey(p.path)).map(x => 'Kit ' + x[0]).join(' '));
     return toks.every(t => hs.includes(t));
   }).sort((a, b) => cmp(display(a.key), display(b.key)));
-  const total = fol.length + pcs.length;
+  const kts = kitNames().filter(n => { const hs = haystack(n + ' ' + S.kits[n].componentes.map(c => c.tipo === 'kit' ? c.nome : display(c.caminho.split('\n').pop())).join(' ')); return toks.every(t => hs.includes(t)); });
+  const total = fol.length + pcs.length + kts.length;
   const els = [h('div', {class: 'hint'}, total ? `${pcs.length} peça${pcs.length === 1 ? '' : 's'}` + (fol.length ? ` e ${fol.length} pasta${fol.length === 1 ? '' : 's'}` : '') : 'Sem resultados para esta pesquisa.')];
+  if (kts.length) { els.push(h('div', {class: 'h2'}, 'Kits'));
+    els.push(...kts.slice(0, 40).map(n => { const st = kitStatusInfo(n);
+      return h('button', {class: 'card kitc', type: 'button', onclick: () => openKit(n)}, h('div', {class: 'l1'}, h('span', {class: 'nm'}, n), h('span', {class: 'st ' + st.cls}, st.txt))); })); }
   if (fol.length) { els.push(h('div', {class: 'h2'}, 'Pastas')); els.push(...fol.slice(0, 40).map(f => folderCard(f.path))); }
   if (pcs.length) { els.push(h('div', {class: 'h2'}, 'Peças')); els.push(...pcs.slice(0, 120).map(p => pieceCard(p, true)));
     if (pcs.length > 120) els.push(h('div', {class: 'hint'}, `A mostrar 120 de ${pcs.length}. Refine a pesquisa.`)); }
@@ -649,12 +871,12 @@ function viewChanges() {
 }
 
 /* ---------- navegação e desenho ---------- */
-const TABS = [['folders', 'Pastas', 'folder'], ['tags', 'Tags', 'tag'], ['summary', 'Resumo', 'chart'], ['changes', 'Alterações', 'list']];
+const TABS = [['folders', 'Pastas', 'folder'], ['tags', 'Tags', 'tag'], ['kits', 'Kits', 'kit'], ['summary', 'Resumo', 'chart'], ['changes', 'Alterações', 'list']];
 function renderTabs() {
   const box = document.getElementById('tabs');
   box.replaceChildren(...TABS.map(([id, label, icon]) => {
     const b = h('button', {class: 'tab', type: 'button', 'aria-current': S.view === id && !S.query.trim() ? 'page' : null,
-      onclick: () => { S.view = id; if (id !== 'tags') S.tagFilter = null; clearSearch(false); render(); window.scrollTo(0, 0); }}, svg(ICON[icon], 22), label);
+      onclick: () => { S.view = id; if (id !== 'tags') S.tagFilter = null; S.kit = null; clearSearch(false); render(); window.scrollTo(0, 0); }}, svg(ICON[icon], 22), label);
     if (id === 'changes' && pending() > 0) b.append(h('span', {class: 'pill'}, pending()));
     return b;
   }));
@@ -663,16 +885,28 @@ function clearSearch(doRender = true) {
   S.query = ''; const q = document.getElementById('q'); q.value = ''; document.getElementById('q-clear').hidden = true;
   if (doRender) render();
 }
+/* quanto tempo passou desde a importação do inventario.json (texto curto para o topo) */
+function importadoHa() {
+  if (!S.meta.importedAt) return '';
+  const t = new Date(S.meta.importedAt);
+  if (isNaN(t)) return '';
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const dia = new Date(t); dia.setHours(0, 0, 0, 0);
+  const dias = Math.round((hoje - dia) / 86400000);
+  const quanto = dias <= 0 ? 'hoje' : dias === 1 ? 'há 1 dia' : `há ${dias} dias`;
+  return `importado ${quanto} (${t.toLocaleDateString('pt-PT')})`;
+}
 function render(keepScroll) {
   const y = window.scrollY;
   renderTabs();
   const sub = document.getElementById('subtitle');
   if (!S.inv) { sub.textContent = 'Inventário'; viewWelcome(); return; }
   const st = stats(S.inv);
-  const when = S.meta.importedAt ? new Date(S.meta.importedAt).toLocaleDateString('pt-PT') : '';
-  sub.textContent = `${st.pieces} peças · ${st.units} un.` + (when ? ` · importado a ${when}` : '');
+  const quando = importadoHa();
+  sub.textContent = `${st.pieces} peças · ${st.units} un.` + (quando ? ` · ${quando}` : '');
   if (S.query.trim()) viewSearch();
   else if (S.view === 'tags') viewTags();
+  else if (S.view === 'kits') viewKits();
   else if (S.view === 'summary') viewSummary();
   else if (S.view === 'changes') viewChanges();
   else viewFolders();
