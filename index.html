@@ -99,6 +99,14 @@ button.chip{cursor:pointer}
 .comp .tx .nm{font-weight:600;overflow-wrap:anywhere}
 .comp .tx small{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
 .comp .have{font-size:12.5px;font-weight:700;white-space:nowrap}
+.sel{width:100%;height:46px;border-radius:10px;border:1px solid var(--line);background:#18181B;color:var(--text);padding:0 10px;font:inherit}
+.field.sm{height:48px;font:16px system-ui;text-align:left}
+.lbl{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.xrow{display:grid;gap:6px;padding:9px 0;border-top:1px solid #3a3a40}
+.xrow:first-child{border-top:0}
+.opt{width:100%;min-height:52px;border-radius:10px;background:#2e2e33;padding:8px 14px;text-align:left;display:grid;gap:1px;font-weight:650}
+.opt small{color:var(--muted);font-weight:400;font-size:12.5px}
+.opt:active{background:#3F3F46}
 .panel{background:var(--folder);border-radius:var(--radius);padding:4px 14px}
 .lotline{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #3a3a40}
 .lotline:first-child,.comp:first-child{border-top:0}
@@ -198,7 +206,7 @@ const PALETTE = [
   {bg:'#0369A1',fg:'#E0F2FE'},{bg:'#6D28D9',fg:'#EDE9FE'},{bg:'#B45309',fg:'#FEF3C7'},{bg:'#047857',fg:'#D1FAE5'},
   {bg:'#BE185D',fg:'#FCE7F3'},{bg:'#4338CA',fg:'#E0E7FF'},{bg:'#0F766E',fg:'#CCFBF1'},{bg:'#9A3412',fg:'#FFEDD5'}
 ];
-const K = {inv:'gkever.inv', base:'gkever.base', tags:'gkever.tags', log:'gkever.log', meta:'gkever.meta', lots:'gkever.lots', kits:'gkever.kits'};
+const K = {inv:'gkever.inv', base:'gkever.base', tags:'gkever.tags', log:'gkever.log', meta:'gkever.meta', lots:'gkever.lots', kits:'gkever.kits', baselots:'gkever.baselots'};
 let storageWarned = false;
 
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
@@ -211,9 +219,11 @@ const S = {
   inv: load(K.inv, null), base: load(K.base, null),
   tags: load(K.tags, {library: [], assignments: {}}),
   log: load(K.log, []), meta: load(K.meta, {importedAt: null, exportedLen: 0}),
-  lots: load(K.lots, {}), kits: load(K.kits, {}),
+  lots: load(K.lots, {}), kits: load(K.kits, {}), baseLots: load(K.baselots, null),
   view: 'folders', path: [], kit: null, tagFilter: null, query: '', highlight: null
 };
+const cloneLots = o => JSON.parse(JSON.stringify(o || {}));
+if (!S.baseLots) { S.baseLots = cloneLots(S.lots); save(K.baselots, S.baseLots); }  // quem já importou na versão anterior
 if (!S.tags || !Array.isArray(S.tags.library)) S.tags = {library: [], assignments: {}};
 // alterações feitas antes desta versão não têm 'id': dão-se-lhes um, para não serem importadas duas vezes
 if (Array.isArray(S.log) && S.log.some(e => e && !e.id)) { S.log.forEach(e => { if (e && !e.id) e.id = newId(); }); save(K.log, S.log); }
@@ -467,19 +477,46 @@ function ask({title, text, ok = 'Confirmar', danger = false}) {
 }
 
 /* ---------- alterações de quantidade ---------- */
-let lastChange = null;
-function applyQty(path, newQty, silent) {
+let lastChange = null;   // {snap: [{path, before, lots}], entries: [...]} — tudo o que o último clique mudou
+const sumLots = lots => lots.reduce((a, x) => a + x[1], 0);
+function snapOf(path) {
+  const k = pkey(path);
+  return {path: path.slice(), before: pieceQty(k), lots: S.lots[k] ? S.lots[k].map(x => x.slice()) : null};
+}
+function setLots(path, lots) { if (lots && lots.length) S.lots[pkey(path)] = lots; else delete S.lots[pkey(path)]; }
+// Tira `need` unidades (igual ao lot_take do PC): primeiro o lote preferido, depois os mais antigos, e por fim o "sem lote" ('').
+function lotTake(lots, free, need, prefer) {
+  lots = lots.map(x => x.slice());
+  const take = [], order = []; let left = need;
+  if (prefer === '') order.push('');
+  else if (prefer != null && lots.some(x => x[0] === prefer)) order.push(prefer);
+  for (const [n] of lots) if (!order.includes(n)) order.push(n);
+  if (!order.includes('')) order.push('');
+  for (const n of order) {
+    const lot = lots.find(x => x[0] === n);
+    const avail = n === '' ? free : (lot ? lot[1] : 0);
+    const t = Math.min(avail, left);
+    if (t > 0) { take.push([n, t]); left -= t; if (n === '') free -= t; else lot[1] -= t; }
+    if (left <= 0) break;
+  }
+  return {take, lots: lots.filter(x => x[1] > 0)};
+}
+const takeText = take => take.map(([l, q]) => l ? `${l}: ${q}` : `sem lote: ${q}`).join(', ');
+function applyQty(path, newQty, silent, lotInfo) {
   const parent = getNode(path.slice(0, -1)), key = path[path.length - 1];
   if (!parent || !(key in parent) || isFolder(parent[key])) return false;
   const before = Number(parent[key]) || 0;
   if (before === newQty) return false;
+  const snap = snapOf(path);
   parent[key] = newQty;
+  if (lotInfo) setLots(path, lotInfo.lots);
   const entry = {ts: nowStr(), tipo: 'qtd', alvo: 'peça', item: display(key), caminho: path.slice(0, -1).join(' > '),
-                 antes: before, depois: newQty, detalhe: '', nota: '', origem: 'telemovel',
+                 antes: before, depois: newQty, detalhe: lotInfo ? lotInfo.detalhe : '', nota: '', origem: 'telemovel',
                  id: newId(), chave: path.slice()};
+  if (lotInfo && lotInfo.deltas.length) entry.lotes = lotInfo.deltas;  // diferenças por lote: o PC soma-as aos lotes dele
   S.log.push(entry);
-  save(K.inv, S.inv); save(K.log, S.log);
-  lastChange = {path, before, entry};
+  save(K.inv, S.inv); save(K.log, S.log); save(K.lots, S.lots);
+  lastChange = {snap: [snap], entries: [entry]};
   if (!silent) {
     toast(`${entry.item}: ${before} → ${newQty}`, {label: 'Desfazer', fn: undo});
   }
@@ -488,16 +525,161 @@ function applyQty(path, newQty, silent) {
 }
 function undo() {
   if (!lastChange) return;
-  const {path, before, entry} = lastChange;
-  const parent = getNode(path.slice(0, -1)), key = path[path.length - 1];
-  if (parent && key in parent) parent[key] = before;
-  const i = S.log.lastIndexOf(entry);
-  if (i >= 0) S.log.splice(i, 1);
+  for (const sn of lastChange.snap) {
+    const parent = getNode(sn.path.slice(0, -1)), key = sn.path[sn.path.length - 1];
+    if (parent && key in parent) parent[key] = sn.before;
+    setLots(sn.path, sn.lots);
+  }
+  for (const en of lastChange.entries) { const i = S.log.lastIndexOf(en); if (i >= 0) S.log.splice(i, 1); }
   if (S.meta.exportedLen > S.log.length) S.meta.exportedLen = S.log.length;
   lastChange = null;
-  save(K.inv, S.inv); save(K.log, S.log); save(K.meta, S.meta);
+  save(K.inv, S.inv); save(K.log, S.log); save(K.meta, S.meta); save(K.lots, S.lots);
   render(true);
 }
+// folha de escolha: devolve o valor da opção tocada, ou undefined se fechar sem escolher
+function chooseSheet(title, sub, options, extra) {
+  return new Promise(res => {
+    let done = false;
+    const finish = v => { if (!done) { done = true; res(v); } };
+    const close = openSheet([
+      h('div', null, h('h3', null, title), sub ? h('div', {class: 'sub'}, sub) : null),
+      ...options.map(o => h('button', {class: 'opt', type: 'button', onclick: () => { finish(o.value); close(); }}, o.label, o.sub ? h('small', null, o.sub) : null)),
+      extra ? extra(v => { finish(v); close(); }) : null,
+      h('button', {class: 'btn gray block', type: 'button', onclick: () => close()}, 'Cancelar')
+    ], () => finish(undefined));
+  });
+}
+// peça com lotes: pergunta de que lote sai / em que lote entra (só quando há escolha). Devolve lotInfo ou null se cancelar.
+async function askLot(path, cur, target) {
+  const lots = pieceLots(path), free = lotsFree(path, lots), name = display(path[path.length - 1]);
+  if (target < cur) {
+    const amount = cur - target;
+    let prefer;
+    if (lots.length === 1 && free === 0) prefer = lots[0][0];
+    else {
+      const opts = [{label: 'Automático', sub: 'o lote mais antigo primeiro', value: null}, ...lots.map(([n, q]) => ({label: 'Lote ' + n, sub: q + ' un.', value: n}))];
+      if (free > 0) opts.push({label: 'Sem lote', sub: free + ' un.', value: ''});
+      prefer = await chooseSheet('De que lote sai?', `${name}: −${amount}`, opts);
+      if (prefer === undefined) return null;
+    }
+    const r = lotTake(lots, free, amount, prefer === null ? undefined : prefer);
+    return {lots: r.lots, deltas: r.take.filter(x => x[0] !== '').map(([n, q]) => [n, -q]), detalhe: 'lote ' + takeText(r.take)};
+  }
+  const delta = target - cur;
+  const opts = [...lots.map(([n, q]) => ({label: 'Lote ' + n, sub: q + ' un.', value: n})), {label: 'Sem lote', value: ''}];
+  const chosen = await chooseSheet('Em que lote entra?', `${name}: +${delta}`, opts, done => {
+    const inp = h('input', {class: 'field sm', type: 'text', autocomplete: 'off', maxlength: 40, placeholder: 'Ou escreva um lote novo'});
+    const go = () => { const v = inp.value.trim(); if (v) done(v); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    return h('div', {class: 'row'}, inp, h('button', {class: 'btn', type: 'button', onclick: go}, 'Usar'));
+  });
+  if (chosen === undefined) return null;
+  if (chosen === '') return {lots, deltas: [], detalhe: 'sem lote'};
+  const match = lots.find(x => x[0].toLowerCase() === chosen.toLowerCase());
+  const nl = lots.map(x => x.slice());
+  if (match) nl.find(x => x[0] === match[0])[1] += delta; else nl.push([chosen, delta]);
+  return {lots: nl, deltas: [[match ? match[0] : chosen, delta]], detalhe: 'lote ' + (match ? match[0] : chosen)};
+}
+async function commitQty(path, cur, target) {
+  if (pieceLots(path).length && target !== cur) {
+    const info = await askLot(path, cur, target);
+    if (info === null) return;
+    applyQty(path, target, false, info);
+  } else applyQty(path, target);
+}
+
+/* ---------- dar saída de kits ---------- */
+function needsLotChoice(key) {
+  const path = key.split('\n'), lots = pieceLots(path);
+  return lots.length > 0 && (lots.length > 1 || lotsFree(path, lots) > 0);
+}
+function doKitExit(name, n, kitLote, choices) {
+  const st = kitStatus(name, n);
+  if (st.falta.length || st.problems.length || st.empty) return false;
+  const {req} = kitFlat(name);
+  const moves = [];
+  const items = [];
+  for (const [key, need1] of req) {
+    const need = need1 * n, path = key.split('\n'), old = pieceQty(key), lots = pieceLots(path);
+    let text = `${need}× ${display(path[path.length - 1])}`, textLots = '', deltas = [], newLots = null;
+    if (lots.length) {
+      const r = lotTake(lots, old - sumLots(lots), need, choices[key]);
+      newLots = r.lots; textLots = ' (' + r.take.map(([l, q]) => l ? `lote ${l}: ${q}` : `sem lote: ${q}`).join(', ') + ')'; text += textLots;
+      deltas = r.take.filter(x => x[0] !== '').map(([l, q]) => [l, -q]);
+    }
+    items.push(text);
+    moves.push({path, old, need, deltas, newLots, textLots, snap: snapOf(path)});
+  }
+  const ts = nowStr(), kitId = newId();
+  const nota = `Saiu junto com o kit «${name}»` + (kitLote ? ` (lote do kit: ${kitLote})` : '');
+  const parts = [];
+  for (const m of moves) {
+    const parent = getNode(m.path.slice(0, -1)), key = m.path[m.path.length - 1];
+    parent[key] = m.old - m.need;
+    if (m.newLots) setLots(m.path, m.newLots);
+    const e = {ts, tipo: 'qtd', alvo: 'peça', item: display(key), caminho: m.path.slice(0, -1).join(' > '), antes: m.old, depois: m.old - m.need,
+               detalhe: `saída com o kit «${name}»` + m.textLots, nota, origem: 'telemovel', id: newId(), chave: m.path.slice(), kit_ref: kitId};
+    if (m.deltas.length) e.lotes = m.deltas;
+    parts.push(e);
+  }
+  const kitEntry = {ts, tipo: 'kit', alvo: 'kit', item: name, caminho: '', antes: null, depois: n,
+                    detalhe: `saída de ${n} kit(s)` + (kitLote ? ` · lote do kit: ${kitLote}` : ''), nota: '', origem: 'telemovel',
+                    id: kitId, itens: items, kit_lote: kitLote || '', partes: parts.map(e => e.id)};
+  S.log.push(kitEntry, ...parts);
+  save(K.inv, S.inv); save(K.log, S.log); save(K.lots, S.lots);
+  lastChange = {snap: moves.map(m => m.snap), entries: [kitEntry, ...parts]};
+  toast(`Saída de ${n} kit${n === 1 ? '' : 's'} «${name}»`, {label: 'Desfazer', fn: undo});
+  render(true);
+  return true;
+}
+function openKitExit(name) {
+  const {req} = kitFlat(name);
+  const choices = {};
+  const nInput = h('input', {class: 'field', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', 'aria-label': 'Número de kits', value: '1'});
+  const loteInput = h('input', {class: 'field sm', type: 'text', autocomplete: 'off', maxlength: 40, placeholder: 'Lote do kit (opcional)', 'aria-label': 'Lote do kit'});
+  const list = h('div', {class: 'panel'}), msg = h('div', {class: 'preview'});
+  const okBtn = h('button', {class: 'btn green block', type: 'button'}, 'Dar saída');
+  const val = () => { const v = parseInt(nInput.value.replace(/\D/g, ''), 10); return v > 0 ? v : null; };
+  function update() {
+    const n = val();
+    list.replaceChildren();
+    if (n === null) { msg.className = 'preview warn'; msg.textContent = 'Indique um número inteiro de kits (maior que 0).'; okBtn.disabled = true; return; }
+    const st = kitStatus(name, n);
+    let short = 0;
+    for (const [k, need1] of req) {
+      const need = need1 * n, ex = pieceExists(k), have = pieceQty(k), ok = ex && have >= need, parts = k.split('\n');
+      if (!ok) short++;
+      list.append(h('div', {class: 'comp'}, h('div', {class: 'q', style: `color:var(--${ok ? 'amber' : 'red'})`}, '−' + need),
+        h('div', {class: 'tx'}, h('span', {class: 'nm'}, display(parts[parts.length - 1])), h('small', null, parts.slice(0, -1).join(' › ') || 'Raiz')),
+        h('div', {class: 'have', style: `color:var(--${ok ? 'green' : 'red'})`}, ex ? (ok ? 'tem ' + have : `tem ${have} · faltam ${need - have}`) : 'já não existe')));
+    }
+    const blocked = short > 0 || st.problems.length > 0 || st.empty;
+    msg.className = 'preview' + (blocked ? ' warn' : '');
+    msg.textContent = st.empty ? 'A receita está vazia.' : st.problems.length ? 'A receita tem problemas: ' + [...new Set(st.problems)].join('; ')
+      : short ? `Não dá: falta material em ${short} componente(s).` : `Vai sair do inventário o que está na lista, para ${n} kit(s).`;
+    okBtn.disabled = blocked;
+  }
+  const selects = [...req.keys()].filter(k => pieceExists(k) && needsLotChoice(k)).map(k => {
+    const path = k.split('\n'), lots = pieceLots(path), free = lotsFree(path, lots);
+    const opts = [h('option', {value: 'auto'}, 'Automático (mais antigo primeiro)'), ...lots.map(([n, q]) => h('option', {value: 'lot:' + n}, `Lote ${n} (${q})`))];
+    if (free > 0) opts.push(h('option', {value: 'free'}, `Sem lote (${free})`));
+    const sel = h('select', {class: 'sel', 'aria-label': 'Lote de ' + display(path[path.length - 1])}, ...opts);
+    sel.addEventListener('change', () => { const v = sel.value; if (v === 'auto') delete choices[k]; else choices[k] = v === 'free' ? '' : v.slice(4); });
+    return h('div', {class: 'xrow'}, h('span', {style: 'font-weight:600'}, display(path[path.length - 1])), sel);
+  });
+  nInput.addEventListener('input', () => { nInput.value = nInput.value.replace(/\D/g, '').slice(0, 5); update(); });
+  const close = openSheet([
+    h('div', null, h('div', {class: 'lbl'}, 'Dar saída'), h('h3', null, name)),
+    h('div', null, h('div', {class: 'lbl', style: 'margin-bottom:4px'}, 'Nº de kits'), nInput),
+    loteInput,
+    selects.length ? h('div', null, h('div', {class: 'sub', style: 'margin-bottom:2px'}, 'Estas peças têm lotes: escolha de qual sai (ou deixe em Automático).'), h('div', {class: 'panel'}, ...selects)) : null,
+    list, msg, okBtn,
+    h('button', {class: 'btn gray block', type: 'button', onclick: () => close()}, 'Cancelar')
+  ]);
+  okBtn.addEventListener('click', () => { const n = val(); if (n !== null && doKitExit(name, n, loteInput.value.trim(), choices)) close(); });
+  update();
+}
+
 function openQty(path, mode) {
   const parent = getNode(path.slice(0, -1)), key = path[path.length - 1];
   if (!parent || !(key in parent)) return;
@@ -535,7 +717,7 @@ function openQty(path, mode) {
     h('div', null, h('h3', null, display(key)), h('div', {class: 'sub'}, path.slice(0, -1).join(' › ') || 'Raiz')),
     seg, input, quick, preview, okBtn
   ]);
-  okBtn.addEventListener('click', () => { const r = result(); if (r !== null) { close(); applyQty(path, r); } });
+  okBtn.addEventListener('click', () => { const r = result(); if (r !== null) { close(); commitQty(path, cur, r); } });
   update();
   setTimeout(() => input.focus(), 60);
 }
@@ -544,7 +726,7 @@ function openNote(entry) {
   ta.value = entry.nota || '';
   const close = openSheet([
     h('h3', null, 'Nota da alteração'),
-    h('div', {class: 'sub'}, `${entry.item}: ${entry.antes} → ${entry.depois}`),
+    h('div', {class: 'sub'}, entry.tipo === 'kit' ? `${entry.item}: ${entry.depois} kit(s)` : `${entry.item}: ${entry.antes} → ${entry.depois}`),
     ta,
     h('div', {class: 'row'},
       h('button', {class: 'btn gray', type: 'button', onclick: () => close()}, 'Cancelar'),
@@ -585,15 +767,20 @@ async function importFiles(files) {
     if (!ok) return;
   }
   if (inv) {
-    S.inv = inv; S.base = JSON.parse(JSON.stringify(inv)); S.log = [];
+    S.inv = inv; S.base = JSON.parse(JSON.stringify(inv)); S.log = []; S.lots = cloneLots(S.baseLots); save(K.lots, S.lots);
     S.meta = {importedAt: new Date().toISOString(), exportedLen: 0, file: invName};
     S.path = []; S.tagFilter = null; lastChange = null;
     save(K.inv, S.inv); save(K.base, S.base); save(K.log, S.log); save(K.meta, S.meta);
   }
+  if (tags && !inv && pending() > 0) {
+    const ok = await ask({title: 'Substituir lotes e kits?', danger: true, ok: 'Importar',
+      text: `Tem ${pending()} alteração(ões) por exportar. Os lotes do ficheiro novo não incluem as saídas já feitas aqui, por isso os lotes mostrados deixam de bater certo. Exporte primeiro.`});
+    if (!ok) tags = null;
+  }
   if (tags) {
     S.tags = {library: tags.library.filter(t => typeof t === 'string'), assignments: tags.assignments};
-    S.lots = readLots(tagsText, tags); S.kits = readKits(tags); kitIdx = null; S.kit = null;
-    save(K.tags, S.tags); save(K.lots, S.lots); save(K.kits, S.kits);
+    S.lots = readLots(tagsText, tags); S.baseLots = cloneLots(S.lots); S.kits = readKits(tags); kitIdx = null; S.kit = null;
+    save(K.tags, S.tags); save(K.lots, S.lots); save(K.baselots, S.baseLots); save(K.kits, S.kits);
   }
   const parts = [];
   if (inv) parts.push(`inventário (${stats(S.inv).pieces} peças)`);
@@ -610,7 +797,7 @@ function download(name, text) {
 // único botão de exportação: só as alterações (o PC soma-as; nunca se substitui o inventário do PC)
 function exportLog() {
   if (!S.log.length) return;
-  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel', guardado: nowStr(), versao: 2, entries: S.log};
+  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel', guardado: nowStr(), versao: 3, entries: S.log};
   download('alteracoes_telemovel.json', JSON.stringify(data, null, 4));
   S.meta.exportedLen = S.log.length; save(K.meta, S.meta);
   toast('Exportado. Próximo passo: no PC, importe este ficheiro (Histórico → Importar telemóvel) e depois envie-lhe o inventario.json atualizado.', {label: 'Entendi', fn: () => {}});
@@ -619,9 +806,10 @@ function exportLog() {
 async function resetToImported() {
   if (!S.base) return;
   const ok = await ask({title: 'Repor o inventário importado?', danger: true, ok: 'Repor',
-    text: `Todas as ${S.log.length} alteração(ões) feitas no telemóvel são descartadas e as quantidades voltam ao ficheiro importado.`});
+    text: `Todas as ${S.log.length} alteração(ões) feitas no telemóvel são descartadas e as quantidades e os lotes voltam ao ficheiro importado.`});
   if (!ok) return;
   S.inv = JSON.parse(JSON.stringify(S.base)); S.log = []; S.meta.exportedLen = 0; lastChange = null;
+  S.lots = cloneLots(S.baseLots); save(K.lots, S.lots);
   save(K.inv, S.inv); save(K.log, S.log); save(K.meta, S.meta);
   toast('Inventário reposto.'); render(true);
 }
@@ -642,7 +830,8 @@ function openHelp() {
     h('h3', null, 'Como funciona'),
     h('p', null, 'Esta app guarda uma cópia do seu inventário só neste telemóvel. Nada é enviado para a internet.'),
     h('p', null, '1. No PC, copie o inventario.json e o tags.json (pasta "Base de Dados") para o telemóvel e importe-os aqui.'),
-    h('p', null, 'No separador Kits vê as receitas e quantos kits dá para montar com o stock atual; as peças mostram os seus lotes (toque no lote para ver o detalhe). Por agora isto é só consulta.'),
+    h('p', null, 'No separador Kits vê as receitas e quantos kits dá para montar com o stock atual; as peças mostram os seus lotes (toque no lote para ver o detalhe).'),
+    h('p', null, 'Em Kits, "Dar saída de kits" tira de uma só vez todas as peças da receita (por lotes, do mais antigo para o mais novo, ou o lote que escolher) e fica registado nas Alterações. Se uma peça tem lotes, o + e o − perguntam o lote.'),
     h('p', null, '2. Consulte e ajuste quantidades com + e −. Cada alteração fica registada.'),
     h('p', null, '3. Para levar as alterações de volta ao PC, use "Exportar alterações" (alteracoes_telemovel.json). No PC, na janela do Histórico, carregue em "Importar telemóvel".'),
     h('p', {class: 'sub'}, 'Atenção: se alterar o inventário no PC e no telemóvel ao mesmo tempo, os ficheiros divergem. Escolha sempre qual a versão que fica.'),
@@ -780,6 +969,7 @@ function viewKits() {
       h('h2', {style: 'margin:6px 2px 0;font-size:20px;color:var(--text-strong);overflow-wrap:anywhere'}, name)];
     if (s.problems.length) els.push(h('div', {class: 'hint', style: 'color:var(--amber)'}, [...new Set(s.problems)].join(' · ')));
     else if (s.falta.length) els.push(h('div', {class: 'hint', style: 'color:var(--red)'}, 'Para 1 kit falta: ' + s.falta.map(f => `${f.nome} (tem ${f.tem}, precisa de ${f.precisa})`).join('; ')));
+    els.push(h('button', {class: 'btn green block', type: 'button', onclick: () => openKitExit(name)}, 'Dar saída de kits'));
     els.push(h('div', {class: 'h2'}, 'Receita'));
     els.push(S.kits[name].componentes.length ? h('div', {class: 'panel'}, ...compRows(name, 1, 0, [])) : h('div', {class: 'hint'}, 'A receita está vazia.'));
     main.replaceChildren(...els);
@@ -860,10 +1050,11 @@ function viewChanges() {
     h('button', {class: 'btn green', type: 'button', onclick: exportLog, disabled: !S.log.length}, svg(ICON.download, 20), 'Exportar alterações')));
   if (S.log.length) els.push(h('button', {class: 'btn red block', type: 'button', onclick: resetToImported}, 'Repor ao ficheiro importado'));
   for (const e of S.log.slice().reverse()) {
-    const d = e.depois - e.antes;
+    const isKit = e.tipo === 'kit';
+    const d = isKit ? -e.depois : e.depois - e.antes;
     els.push(h('button', {class: 'card chg', type: 'button', style: 'width:100%;text-align:left', onclick: () => openNote(e), 'aria-label': 'Editar nota de ' + e.item},
-      h('div', {class: 'l1'}, h('span', {class: 'nm'}, e.item), h('span', {class: 'delta ' + (d >= 0 ? 'up' : 'down')}, (d >= 0 ? '+' : '−') + Math.abs(d))),
-      h('div', {class: 'dt'}, `${e.caminho}  ·  ${e.antes} → ${e.depois}`),
+      h('div', {class: 'l1'}, h('span', {class: 'nm'}, (isKit ? 'Kit · ' : '') + e.item), h('span', {class: 'delta ' + (d >= 0 ? 'up' : 'down')}, isKit ? e.depois + ' kit(s)' : (d >= 0 ? '+' : '−') + Math.abs(d))),
+      h('div', {class: 'dt'}, isKit ? (e.itens || []).join(' · ') : `${e.caminho}  ·  ${e.antes} → ${e.depois}` + (e.detalhe ? `  ·  ${e.detalhe}` : '')),
       h('div', {class: 'tm'}, `${e.ts.slice(8, 10)}/${e.ts.slice(5, 7)}/${e.ts.slice(0, 4)} ${e.ts.slice(11, 16)}`),
       e.nota ? h('div', {class: 'note'}, 'Nota: ' + e.nota) : h('div', {class: 'tm'}, 'Toque para adicionar nota')));
   }
