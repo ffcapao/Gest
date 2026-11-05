@@ -206,7 +206,7 @@ const PALETTE = [
   {bg:'#0369A1',fg:'#E0F2FE'},{bg:'#6D28D9',fg:'#EDE9FE'},{bg:'#B45309',fg:'#FEF3C7'},{bg:'#047857',fg:'#D1FAE5'},
   {bg:'#BE185D',fg:'#FCE7F3'},{bg:'#4338CA',fg:'#E0E7FF'},{bg:'#0F766E',fg:'#CCFBF1'},{bg:'#9A3412',fg:'#FFEDD5'}
 ];
-const K = {inv:'gkever.inv', base:'gkever.base', tags:'gkever.tags', log:'gkever.log', meta:'gkever.meta', lots:'gkever.lots', kits:'gkever.kits', baselots:'gkever.baselots'};
+const K = {inv:'gkever.inv', base:'gkever.base', tags:'gkever.tags', log:'gkever.log', meta:'gkever.meta', lots:'gkever.lots', kits:'gkever.kits', baselots:'gkever.baselots', basekits:'gkever.basekits'};
 let storageWarned = false;
 
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
@@ -219,10 +219,11 @@ const S = {
   inv: load(K.inv, null), base: load(K.base, null),
   tags: load(K.tags, {library: [], assignments: {}}),
   log: load(K.log, []), meta: load(K.meta, {importedAt: null, exportedLen: 0}),
-  lots: load(K.lots, {}), kits: load(K.kits, {}), baseLots: load(K.baselots, null),
-  view: 'folders', path: [], kit: null, tagFilter: null, query: '', highlight: null
+  lots: load(K.lots, {}), kits: load(K.kits, {}), baseLots: load(K.baselots, null), baseKits: load(K.basekits, null),
+  view: 'folders', path: [], kit: null, edit: null, tagFilter: null, query: '', highlight: null
 };
 const cloneLots = o => JSON.parse(JSON.stringify(o || {}));
+if (!S.baseKits) { S.baseKits = cloneLots(S.kits); save(K.basekits, S.baseKits); }
 if (!S.baseLots) { S.baseLots = cloneLots(S.lots); save(K.baselots, S.baseLots); }  // quem já importou na versão anterior
 if (!S.tags || !Array.isArray(S.tags.library)) S.tags = {library: [], assignments: {}};
 // alterações feitas antes desta versão não têm 'id': dão-se-lhes um, para não serem importadas duas vezes
@@ -530,6 +531,7 @@ function undo() {
     if (parent && key in parent) parent[key] = sn.before;
     setLots(sn.path, sn.lots);
   }
+  if (lastChange.kits) { S.kits = lastChange.kits; kitIdx = null; save(K.kits, S.kits); }  // receitas
   for (const en of lastChange.entries) { const i = S.log.lastIndexOf(en); if (i >= 0) S.log.splice(i, 1); }
   if (S.meta.exportedLen > S.log.length) S.meta.exportedLen = S.log.length;
   lastChange = null;
@@ -726,7 +728,7 @@ function openNote(entry) {
   ta.value = entry.nota || '';
   const close = openSheet([
     h('h3', null, 'Nota da alteração'),
-    h('div', {class: 'sub'}, entry.tipo === 'kit' ? `${entry.item}: ${entry.depois} kit(s)` : `${entry.item}: ${entry.antes} → ${entry.depois}`),
+    h('div', {class: 'sub'}, entry.tipo === 'receita' ? `Receita · ${entry.item}` : entry.tipo === 'kit' ? `${entry.item}: ${entry.depois} kit(s)` : `${entry.item}: ${entry.antes} → ${entry.depois}`),
     ta,
     h('div', {class: 'row'},
       h('button', {class: 'btn gray', type: 'button', onclick: () => close()}, 'Cancelar'),
@@ -767,7 +769,7 @@ async function importFiles(files) {
     if (!ok) return;
   }
   if (inv) {
-    S.inv = inv; S.base = JSON.parse(JSON.stringify(inv)); S.log = []; S.lots = cloneLots(S.baseLots); save(K.lots, S.lots);
+    S.inv = inv; S.base = JSON.parse(JSON.stringify(inv)); S.log = []; S.lots = cloneLots(S.baseLots); S.kits = cloneLots(S.baseKits); kitIdx = null; S.edit = null; save(K.lots, S.lots); save(K.kits, S.kits);
     S.meta = {importedAt: new Date().toISOString(), exportedLen: 0, file: invName};
     S.path = []; S.tagFilter = null; lastChange = null;
     save(K.inv, S.inv); save(K.base, S.base); save(K.log, S.log); save(K.meta, S.meta);
@@ -779,8 +781,8 @@ async function importFiles(files) {
   }
   if (tags) {
     S.tags = {library: tags.library.filter(t => typeof t === 'string'), assignments: tags.assignments};
-    S.lots = readLots(tagsText, tags); S.baseLots = cloneLots(S.lots); S.kits = readKits(tags); kitIdx = null; S.kit = null;
-    save(K.tags, S.tags); save(K.lots, S.lots); save(K.baselots, S.baseLots); save(K.kits, S.kits);
+    S.lots = readLots(tagsText, tags); S.baseLots = cloneLots(S.lots); S.kits = readKits(tags); S.baseKits = cloneLots(S.kits); kitIdx = null; S.kit = null; S.edit = null;
+    save(K.tags, S.tags); save(K.lots, S.lots); save(K.baselots, S.baseLots); save(K.kits, S.kits); save(K.basekits, S.baseKits);
   }
   const parts = [];
   if (inv) parts.push(`inventário (${stats(S.inv).pieces} peças)`);
@@ -809,7 +811,7 @@ async function resetToImported() {
     text: `Todas as ${S.log.length} alteração(ões) feitas no telemóvel são descartadas e as quantidades e os lotes voltam ao ficheiro importado.`});
   if (!ok) return;
   S.inv = JSON.parse(JSON.stringify(S.base)); S.log = []; S.meta.exportedLen = 0; lastChange = null;
-  S.lots = cloneLots(S.baseLots); save(K.lots, S.lots);
+  S.lots = cloneLots(S.baseLots); S.kits = cloneLots(S.baseKits); kitIdx = null; S.edit = null; save(K.lots, S.lots); save(K.kits, S.kits);
   save(K.inv, S.inv); save(K.log, S.log); save(K.meta, S.meta);
   toast('Inventário reposto.'); render(true);
 }
@@ -831,6 +833,7 @@ function openHelp() {
     h('p', null, 'Esta app guarda uma cópia do seu inventário só neste telemóvel. Nada é enviado para a internet.'),
     h('p', null, '1. No PC, copie o inventario.json e o tags.json (pasta "Base de Dados") para o telemóvel e importe-os aqui.'),
     h('p', null, 'No separador Kits vê as receitas e quantos kits dá para montar com o stock atual; as peças mostram os seus lotes (toque no lote para ver o detalhe).'),
+    h('p', null, 'Em Kits pode criar kits novos ("+ Novo kit"), editar a receita e apagar. Estas alterações também ficam em Alterações e seguem no ficheiro exportado: se a receita tiver mudado no PC entretanto, o PC mostra um conflito e não a substitui.'),
     h('p', null, 'Em Kits, "Dar saída de kits" tira de uma só vez todas as peças da receita (por lotes, do mais antigo para o mais novo, ou o lote que escolher) e fica registado nas Alterações. Se uma peça tem lotes, o + e o − perguntam o lote.'),
     h('p', null, '2. Consulte e ajuste quantidades com + e −. Cada alteração fica registada.'),
     h('p', null, '3. Para levar as alterações de volta ao PC, use "Exportar alterações" (alteracoes_telemovel.json). No PC, na janela do Histórico, carregue em "Importar telemóvel".'),
@@ -851,7 +854,7 @@ function pieceChips(p) {
   else if (ks.length) out.push(h('button', {class: 'chip kit', type: 'button', onclick: open}, ks.length + ' kits'));
   return out.length ? h('div', {class: 'chips'}, ...out) : null;
 }
-function openKit(name) { clearSearch(false); S.view = 'kits'; S.kit = name; S.tagFilter = null; render(); window.scrollTo(0, 0); }
+async function openKit(name) { if (!(await leaveEdit())) return; clearSearch(false); S.view = 'kits'; S.kit = name; S.tagFilter = null; render(); window.scrollTo(0, 0); }
 function openPiece(path) {
   const key = pkey(path), lots = pieceLots(path), free = lotsFree(path, lots), ks = kitsUsingPiece(key);
   const close = openSheet([
@@ -957,8 +960,159 @@ function compRows(name, mult, depth, stack) {
   }
   return out;
 }
+/* ---------- receitas: criar, editar, apagar ---------- */
+function kitContains(name, target, stack = []) {
+  if (stack.includes(name)) return false;
+  for (const c of (S.kits[name] ? S.kits[name].componentes : [])) {
+    if (c.tipo === 'kit' && (c.nome === target || kitContains(c.nome, target, stack.concat(name)))) return true;
+  }
+  return false;
+}
+const editSig = () => JSON.stringify([S.edit.name.trim(), S.edit.comps]);
+function startEdit(old) {
+  S.edit = {old: old || null, name: old || '', comps: old ? S.kits[old].componentes.map(c => ({...c})) : [], mode: 'peca', q: ''};
+  S.edit.sig = editSig();
+  clearSearch(false); S.view = 'kits'; S.kit = old || null; S.tagFilter = null;
+  render(); window.scrollTo(0, 0);
+}
+async function leaveEdit() {
+  if (!S.edit) return true;
+  if (editSig() !== S.edit.sig) {
+    const ok = await ask({title: 'Descartar alterações?', danger: true, ok: 'Descartar', text: 'Tem alterações à receita que ainda não foram guardadas.'});
+    if (!ok) return false;
+  }
+  S.edit = null;
+  return true;
+}
+function recipeLog(entry, before) {
+  S.log.push(entry);
+  save(K.kits, S.kits); save(K.log, S.log);
+  kitIdx = null;
+  lastChange = {snap: [], entries: [entry], kits: before};
+}
+function commitRecipe(old, name, comps) {
+  const before = cloneLots(S.kits);
+  const antes = old ? cloneLots(S.kits[old]) : null;
+  const depois = {componentes: comps.map(c => c.tipo === 'kit' ? {tipo: 'kit', nome: c.nome, qtd: c.qtd} : {tipo: 'peca', caminho: c.caminho, qtd: c.qtd})};
+  if (old && old === name && JSON.stringify(antes) === JSON.stringify(depois)) { S.edit = null; toast('Sem alterações na receita.'); render(); return; }
+  if (old && old !== name) {
+    S.kits[name] = S.kits[old]; delete S.kits[old];
+    for (const k of Object.values(S.kits)) for (const c of k.componentes) if (c.tipo === 'kit' && c.nome === old) c.nome = name;  // outros kits que o levavam
+  }
+  S.kits[name] = depois;
+  const entry = {ts: nowStr(), tipo: 'receita', alvo: 'kit', item: name, caminho: '', antes: null, depois: null,
+                 detalhe: !old ? 'kit criado' : old !== name ? `kit renomeado de «${old}» e receita editada` : 'receita editada',
+                 nota: '', origem: 'telemovel', id: newId(),
+                 receita: {acao: old ? 'editar' : 'criar', nome_antigo: old && old !== name ? old : undefined, antes, depois}};
+  recipeLog(entry, before);
+  S.edit = null; S.kit = name;
+  toast(old ? 'Receita guardada.' : `Kit «${name}» criado.`, {label: 'Desfazer', fn: undo});
+  render(); window.scrollTo(0, 0);
+}
+async function deleteKit(name) {
+  const users = kitNames().filter(k => S.kits[k].componentes.some(c => c.tipo === 'kit' && c.nome === name));
+  const ok = await ask({title: 'Apagar kit?', danger: true, ok: 'Apagar',
+    text: `Apagar o kit «${name}»? As peças não são afetadas.` + (users.length ? ` Atenção: entra na receita de ${users.join(', ')}, que ficarão com um componente em falta.` : '')});
+  if (!ok) return;
+  const before = cloneLots(S.kits), antes = cloneLots(S.kits[name]);
+  delete S.kits[name];
+  const entry = {ts: nowStr(), tipo: 'receita', alvo: 'kit', item: name, caminho: '', antes: null, depois: null, detalhe: 'kit apagado',
+                 nota: '', origem: 'telemovel', id: newId(), receita: {acao: 'apagar', antes, depois: null}};
+  recipeLog(entry, before);
+  S.kit = null;
+  toast(`Kit «${name}» apagado.`, {label: 'Desfazer', fn: undo});
+  render(true);
+}
+function saveEdit() {
+  const E = S.edit, name = E.name.trim();
+  if (!name) return toast('Dê um nome ao kit.');
+  if (kitNames().some(k => k.toLowerCase() === name.toLowerCase() && k !== E.old)) return toast(`Já existe um kit chamado «${name}».`);
+  if (!E.comps.length) return toast('Junte pelo menos um componente à receita.');
+  if (E.comps.some(c => !(Number.isInteger(c.qtd) && c.qtd > 0))) return toast('As quantidades têm de ser números inteiros maiores que 0.');
+  const ref = E.old || name;
+  for (const c of E.comps) if (c.tipo === 'kit' && (c.nome === ref || kitContains(c.nome, ref))) return toast(`O kit «${c.nome}» leva este kit (ou é ele próprio): daria uma receita em círculo.`);
+  commitRecipe(E.old, name, E.comps);
+}
+function viewKitEditor() {
+  const E = S.edit;
+  const compsBox = h('div', {class: 'panel', style: 'max-height:42vh;overflow:auto'});
+  const resBox = h('div', {class: 'panel'});
+  const resInfo = h('div', {class: 'hint'});
+  const keyOf = c => c.tipo === 'kit' ? c.nome : c.caminho;
+  function renderComps() {
+    if (!E.comps.length) { compsBox.replaceChildren(h('div', {class: 'hint', style: 'padding:12px 0'}, 'Ainda sem componentes. Escolha peças ou kits na lista de baixo.')); return; }
+    compsBox.replaceChildren(...E.comps.map((c, i) => {
+      const parts = c.tipo === 'kit' ? [] : c.caminho.split('\n');
+      const ex = c.tipo === 'kit' ? !!S.kits[c.nome] : pieceExists(c.caminho);
+      const inp = h('input', {class: 'field', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', value: String(c.qtd), 'aria-label': 'Quantidade',
+        style: 'width:64px;height:44px;font-size:18px;padding:0 4px'});
+      inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 5); c.qtd = parseInt(inp.value, 10) || 0; });
+      inp.addEventListener('blur', () => { if (!(c.qtd > 0)) { c.qtd = 1; inp.value = '1'; } });
+      const step = d => () => { c.qtd = Math.max(1, (c.qtd || 0) + d); inp.value = String(c.qtd); };
+      return h('div', {class: 'xrow'},
+        h('div', {class: 'comp', style: 'border:0;padding:0'},
+          h('div', {class: 'tx'},
+            h('span', {class: 'nm', style: `color:${c.tipo === 'kit' ? 'var(--purple)' : ex ? 'var(--text-strong)' : 'var(--red)'}`}, c.tipo === 'kit' ? 'Kit · ' + c.nome + (ex ? '' : '  (em falta)') : display(parts[parts.length - 1]) + (ex ? '' : '  (já não existe)')),
+            c.tipo === 'kit' ? null : h('small', null, parts.slice(0, -1).join(' › ') || 'Raiz')),
+          h('button', {class: 'icon-btn', type: 'button', 'aria-label': 'Tirar da receita', style: 'width:40px;height:40px;color:var(--red)', onclick: () => { E.comps.splice(i, 1); renderComps(); renderResults(); }}, svg('<path d="M6 6l12 12M18 6L6 18"/>', 20))),
+        h('div', {class: 'ctrl', style: 'justify-content:flex-end'},
+          h('button', {class: 'minus', type: 'button', 'aria-label': 'Menos', onclick: step(-1)}, '−'), inp,
+          h('button', {class: 'plus', type: 'button', 'aria-label': 'Mais', onclick: step(1)}, '+')));
+    }));
+  }
+  function candidates() {
+    const toks = queryTokens(E.q);
+    if (E.mode === 'kit') {
+      return kitNames().filter(n => n !== E.old && !(E.old && kitContains(n, E.old)))
+        .filter(n => { const hs = haystack(n + ' ' + S.kits[n].componentes.map(c => c.tipo === 'kit' ? c.nome : display(c.caminho.split('\n').pop())).join(' ')); return toks.every(t => hs.includes(t)); })
+        .map(n => ({tipo: 'kit', nome: n, title: n, sub: `${S.kits[n].componentes.length} componente(s)`}));
+    }
+    return allPieces().filter(p => { const hs = haystack(p.path.map(display).join(' ') + ' ' + (tagOf(p.path) || '')); return toks.every(t => hs.includes(t)); })
+      .sort((a, b) => cmp(display(a.key), display(b.key)))
+      .map(p => ({tipo: 'peca', caminho: pkey(p.path), title: display(p.key), sub: p.path.slice(0, -1).join(' › ') || 'Raiz'}));
+  }
+  function add(cand) {
+    const have = E.comps.find(c => c.tipo === cand.tipo && keyOf(c) === keyOf(cand));
+    if (have) have.qtd = (have.qtd || 0) + 1;
+    else E.comps.push(cand.tipo === 'kit' ? {tipo: 'kit', nome: cand.nome, qtd: 1} : {tipo: 'peca', caminho: cand.caminho, qtd: 1});
+    renderComps(); renderResults();
+    compsBox.scrollTop = compsBox.scrollHeight;
+  }
+  function renderResults() {
+    const res = candidates();
+    if (!res.length) { resBox.replaceChildren(h('div', {class: 'hint', style: 'padding:12px 0'}, E.q.trim() ? 'Nada encontrado.' : (E.mode === 'kit' ? 'Ainda não há outros kits.' : 'Não há peças.'))); resInfo.textContent = ''; return; }
+    resBox.replaceChildren(...res.slice(0, 40).map(cand => {
+      const inR = E.comps.find(c => c.tipo === cand.tipo && keyOf(c) === keyOf(cand));
+      return h('button', {class: 'comp', type: 'button', style: 'width:100%;text-align:left', onclick: () => add(cand)},
+        h('div', {class: 'tx'}, h('span', {class: 'nm', style: cand.tipo === 'kit' ? 'color:var(--purple)' : ''}, cand.title), h('small', null, cand.sub)),
+        h('div', {class: 'have', style: `color:var(--${inR ? 'green' : 'blue-hi'});font-size:15px`}, inR ? `✓ ×${inR.qtd}` : '+'));
+    }));
+    resInfo.textContent = `${res.length} resultado(s)` + (res.length > 40 ? ' · a mostrar 40, afine a pesquisa' : '');
+  }
+  const nameInp = h('input', {class: 'field sm', type: 'text', autocomplete: 'off', maxlength: 60, placeholder: 'Nome do kit (ex.: Kit V-tail)', 'aria-label': 'Nome do kit', value: E.name});
+  nameInp.addEventListener('input', () => { E.name = nameInp.value; });
+  const qInp = h('input', {class: 'field sm', type: 'search', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: E.mode === 'kit' ? 'Pesquisar kits...' : 'Pesquisar peças...', 'aria-label': 'Pesquisar para juntar', value: E.q});
+  let qTimer2 = null;
+  qInp.addEventListener('input', () => { E.q = qInp.value; clearTimeout(qTimer2); qTimer2 = setTimeout(renderResults, 120); });
+  const segB = {};
+  const setMode = m => { E.mode = m; for (const k of Object.keys(segB)) segB[k].setAttribute('aria-pressed', String(k === m)); qInp.placeholder = m === 'kit' ? 'Pesquisar kits...' : 'Pesquisar peças...'; renderResults(); };
+  const seg = h('div', {class: 'seg', style: 'grid-template-columns:repeat(2,1fr)', role: 'group', 'aria-label': 'Juntar'},
+    ...[['peca', 'Peças'], ['kit', 'Kits']].map(([k, label]) => (segB[k] = h('button', {type: 'button', class: 'm-set', onclick: () => setMode(k)}, label))));
+  for (const k of Object.keys(segB)) segB[k].setAttribute('aria-pressed', String(k === E.mode));
+  renderComps(); renderResults();
+  main.replaceChildren(
+    h('div', {class: 'lbl', style: 'margin-top:4px'}, E.old ? 'Editar receita' : 'Novo kit'),
+    nameInp,
+    h('div', {class: 'h2'}, 'Na receita'), compsBox,
+    h('div', {class: 'h2'}, 'Juntar (toque para adicionar)'), seg, qInp, resBox, resInfo,
+    h('div', {class: 'row'},
+      h('button', {class: 'btn gray', type: 'button', onclick: async () => { if (await leaveEdit()) { render(); window.scrollTo(0, 0); } }}, 'Cancelar'),
+      h('button', {class: 'btn green', type: 'button', onclick: saveEdit}, 'Guardar')));
+}
+
 function viewKits() {
   const names = kitNames();
+  if (S.edit) { viewKitEditor(); return; }
   if (S.kit && !S.kits[S.kit]) S.kit = null;
   if (S.kit) {
     const name = S.kit, st = kitStatusInfo(name), s = st.s;
@@ -970,13 +1124,17 @@ function viewKits() {
     if (s.problems.length) els.push(h('div', {class: 'hint', style: 'color:var(--amber)'}, [...new Set(s.problems)].join(' · ')));
     else if (s.falta.length) els.push(h('div', {class: 'hint', style: 'color:var(--red)'}, 'Para 1 kit falta: ' + s.falta.map(f => `${f.nome} (tem ${f.tem}, precisa de ${f.precisa})`).join('; ')));
     els.push(h('button', {class: 'btn green block', type: 'button', onclick: () => openKitExit(name)}, 'Dar saída de kits'));
+    els.push(h('div', {class: 'row'},
+      h('button', {class: 'btn gray', type: 'button', onclick: () => startEdit(name)}, 'Editar receita'),
+      h('button', {class: 'btn red', type: 'button', onclick: () => deleteKit(name)}, 'Apagar kit')));
     els.push(h('div', {class: 'h2'}, 'Receita'));
     els.push(S.kits[name].componentes.length ? h('div', {class: 'panel'}, ...compRows(name, 1, 0, [])) : h('div', {class: 'hint'}, 'A receita está vazia.'));
     main.replaceChildren(...els);
     return;
   }
-  if (!names.length) { main.replaceChildren(h('div', {class: 'empty'}, 'Ainda não há kits. Importe o tags.json do PC.')); return; }
-  main.replaceChildren(h('div', {class: 'hint'}, 'Toque num kit para ver a receita.'),
+  const novo = h('button', {class: 'btn teal block', type: 'button', onclick: () => startEdit(null)}, '+ Novo kit');
+  if (!names.length) { main.replaceChildren(novo, h('div', {class: 'empty'}, 'Ainda não há kits. Crie um, ou importe o tags.json do PC.')); return; }
+  main.replaceChildren(novo, h('div', {class: 'hint'}, 'Toque num kit para ver a receita.'),
     ...names.map(n => { const st = kitStatusInfo(n), c = S.kits[n].componentes.length;
       return h('button', {class: 'card kitc', type: 'button', onclick: () => { S.kit = n; render(); window.scrollTo(0, 0); }},
         h('div', {class: 'l1'}, h('span', {class: 'nm'}, n), svg(ICON.chev, 18)),
@@ -1050,11 +1208,11 @@ function viewChanges() {
     h('button', {class: 'btn green', type: 'button', onclick: exportLog, disabled: !S.log.length}, svg(ICON.download, 20), 'Exportar alterações')));
   if (S.log.length) els.push(h('button', {class: 'btn red block', type: 'button', onclick: resetToImported}, 'Repor ao ficheiro importado'));
   for (const e of S.log.slice().reverse()) {
-    const isKit = e.tipo === 'kit';
-    const d = isKit ? -e.depois : e.depois - e.antes;
+    const isKit = e.tipo === 'kit', isRec = e.tipo === 'receita';
+    const d = isKit ? -e.depois : isRec ? 0 : e.depois - e.antes;
     els.push(h('button', {class: 'card chg', type: 'button', style: 'width:100%;text-align:left', onclick: () => openNote(e), 'aria-label': 'Editar nota de ' + e.item},
-      h('div', {class: 'l1'}, h('span', {class: 'nm'}, (isKit ? 'Kit · ' : '') + e.item), h('span', {class: 'delta ' + (d >= 0 ? 'up' : 'down')}, isKit ? e.depois + ' kit(s)' : (d >= 0 ? '+' : '−') + Math.abs(d))),
-      h('div', {class: 'dt'}, isKit ? (e.itens || []).join(' · ') : `${e.caminho}  ·  ${e.antes} → ${e.depois}` + (e.detalhe ? `  ·  ${e.detalhe}` : '')),
+      h('div', {class: 'l1'}, h('span', {class: 'nm'}, (isKit ? 'Kit · ' : isRec ? 'Receita · ' : '') + e.item), h('span', {class: 'delta ' + (d >= 0 ? 'up' : 'down')}, isRec ? ({criar: 'criada', editar: 'editada', apagar: 'apagada'}[e.receita && e.receita.acao] || 'receita') : isKit ? e.depois + ' kit(s)' : (d >= 0 ? '+' : '−') + Math.abs(d))),
+      h('div', {class: 'dt'}, isRec ? (e.detalhe || '') : isKit ? (e.itens || []).join(' · ') : `${e.caminho}  ·  ${e.antes} → ${e.depois}` + (e.detalhe ? `  ·  ${e.detalhe}` : '')),
       h('div', {class: 'tm'}, `${e.ts.slice(8, 10)}/${e.ts.slice(5, 7)}/${e.ts.slice(0, 4)} ${e.ts.slice(11, 16)}`),
       e.nota ? h('div', {class: 'note'}, 'Nota: ' + e.nota) : h('div', {class: 'tm'}, 'Toque para adicionar nota')));
   }
@@ -1067,7 +1225,7 @@ function renderTabs() {
   const box = document.getElementById('tabs');
   box.replaceChildren(...TABS.map(([id, label, icon]) => {
     const b = h('button', {class: 'tab', type: 'button', 'aria-current': S.view === id && !S.query.trim() ? 'page' : null,
-      onclick: () => { S.view = id; if (id !== 'tags') S.tagFilter = null; S.kit = null; clearSearch(false); render(); window.scrollTo(0, 0); }}, svg(ICON[icon], 22), label);
+      onclick: async () => { if (!(await leaveEdit())) return; S.view = id; if (id !== 'tags') S.tagFilter = null; S.kit = null; clearSearch(false); render(); window.scrollTo(0, 0); }}, svg(ICON[icon], 22), label);
     if (id === 'changes' && pending() > 0) b.append(h('span', {class: 'pill'}, pending()));
     return b;
   }));
