@@ -799,7 +799,9 @@ function download(name, text) {
 // único botão de exportação: só as alterações (o PC soma-as; nunca se substitui o inventário do PC)
 function exportLog() {
   if (!S.log.length) return;
-  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel', guardado: nowStr(), versao: 3, entries: S.log};
+  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel', guardado: nowStr(), versao: 3, entries: S.log,
+    // o que este telemóvel viu quando importou: o PC compara com o dele e avisa se parecer outro inventário
+    impressao: {pastas: Object.keys(S.base || {}).filter(k => isFolder(S.base[k])), tags: S.tags.library.slice(), kits: Object.keys(S.baseKits || {})}};
   download('alteracoes_telemovel.json', JSON.stringify(data, null, 4));
   S.meta.exportedLen = S.log.length; save(K.meta, S.meta);
   toast('Exportado. Próximo passo: no PC, importe este ficheiro (Histórico → Importar telemóvel) e depois envie-lhe o inventario.json atualizado.', {label: 'Entendi', fn: () => {}});
