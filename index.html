@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#18181B">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GKever">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>GKever</title>
+<style>
+:root{
+  --bg:#2B2B2B; --panel:#18181B; --card:#262121; --card-hover:#2e2828; --folder:#27272A; --line:#3F3F46;
+  --text:#E4E4E7; --text-strong:#FFFFFF; --muted:#A1A1AA; --dim:#71717A;
+  --blue:#1f538d; --blue-hi:#60A5FA; --green:#34D399; --green-bg:#064E3B; --btn-green:#27AE60;
+  --red:#F87171; --red-bg:#450A0A; --btn-minus:#8d1f1f; --amber:#FBBF24; --purple:#C084FC; --teal:#0D9488;
+  --radius:12px; --gutter:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;display:flex;flex-direction:column;align-items:center}
+.app{width:100%;max-width:720px;min-height:100dvh;display:flex;flex-direction:column;position:relative}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--blue-hi);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* topo */
+.top{position:sticky;top:0;z-index:20;background:var(--panel);padding:10px var(--gutter) 10px;border-bottom:1px solid #000;display:grid;gap:10px}
+.top-row{display:flex;align-items:center;gap:10px}
+.brand{font-weight:700;font-size:19px;color:var(--text-strong);letter-spacing:.2px;flex:1;min-width:0}
+.brand small{display:block;font-weight:400;font-size:11.5px;color:var(--muted);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:var(--text)}
+.icon-btn:active{background:#333}
+.search{position:relative}
+.search input{width:100%;height:44px;border-radius:10px;border:1px solid var(--line);background:#222226;color:var(--text);padding:0 40px 0 14px;font:inherit}
+.search input::placeholder{color:#8a8a92}
+.search input::-webkit-search-cancel-button,.search input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
+.search .clear{position:absolute;right:2px;top:0;width:44px;height:44px;display:grid;place-items:center;color:var(--muted)}
+
+/* conteúdo */
+main{flex:1;padding:12px var(--gutter) calc(88px + var(--safe-b));display:grid;gap:8px;align-content:start}
+.crumbs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;align-items:center}
+.crumbs::-webkit-scrollbar{display:none}
+.crumb{flex:none;padding:6px 11px;border-radius:999px;background:#333338;color:var(--text);font-size:13.5px;white-space:nowrap}
+.crumb.cur{background:var(--blue);color:#fff;font-weight:600}
+.sep{color:var(--dim);flex:none}
+.card{background:var(--card);border-radius:var(--radius);padding:12px 12px 12px 14px}
+.folder{background:var(--folder);display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:56px}
+.folder:active{background:#34343a}
+.folder .f-name{flex:1;min-width:0;color:var(--blue-hi);font-weight:650;overflow-wrap:anywhere}
+.folder .f-meta{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.folder svg{flex:none;color:var(--dim)}
+.piece{display:flex;align-items:center;gap:10px}
+.piece.flash{animation:flash 1.8s ease-out}
+@keyframes flash{0%,35%{background:#0F766E}100%{background:var(--card)}}
+.p-info{flex:1;min-width:0;display:grid;gap:5px;justify-items:start}
+.p-name{font-weight:650;color:#F4F4F5;text-align:left;overflow-wrap:anywhere;line-height:1.25}
+.p-path{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.chip{display:inline-block;font-size:12px;font-weight:650;padding:2px 9px;border-radius:999px}
+.ctrl{display:flex;align-items:center;gap:6px;flex:none}
+.ctrl button{width:44px;height:44px;border-radius:10px;font-size:22px;font-weight:700;color:#fff;display:grid;place-items:center}
+.ctrl .minus{background:var(--btn-minus)} .ctrl .plus{background:var(--blue)}
+.ctrl .minus:active{background:#AD2424} .ctrl .plus:active{background:#246BAD}
+.ctrl .qty{width:auto;min-width:54px;padding:0 8px;font-size:17px;background:var(--green-bg);color:var(--green)}
+.ctrl .qty.zero{background:var(--red-bg);color:var(--red)}
+.hint{color:var(--muted);font-size:13.5px;padding:2px 2px 6px}
+.h2{font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:10px 2px 2px}
+.empty{text-align:center;color:var(--muted);padding:36px 10px}
+.welcome{background:var(--folder);border-radius:16px;padding:22px 18px;display:grid;gap:14px;margin-top:6px}
+.welcome h1{margin:0;font-size:21px;color:var(--text-strong)}
+.welcome p{margin:0;color:var(--text);font-size:15px}
+.welcome ol{margin:0;padding-left:20px;color:var(--text);font-size:15px;display:grid;gap:4px}
+
+.btn{min-height:48px;border-radius:10px;padding:0 16px;font-weight:650;color:#fff;background:var(--blue);display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center}
+.btn:active{filter:brightness(1.15)}
+.btn.green{background:var(--btn-green)} .btn.gray{background:#52525B} .btn.red{background:var(--btn-minus)} .btn.teal{background:var(--teal)}
+.btn[disabled]{background:#1F1F23;color:var(--dim);cursor:not-allowed}
+.btn.block{width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>.btn{flex:1 1 150px}
+
+/* resumo */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--panel);border-radius:var(--radius);padding:10px 12px}
+.stat b{display:block;font-size:22px;line-height:1.15}
+.stat span{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.bar{height:6px;border-radius:3px;background:#3a3a40;margin-top:7px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--blue-hi);border-radius:3px}
+.mf{display:grid;gap:2px;width:100%;text-align:left}
+.mf .top-line{display:flex;justify-content:space-between;gap:10px}
+.mf .nm{font-weight:650;color:var(--blue-hi)}.mf .un{color:var(--amber);font-weight:700;white-space:nowrap}
+
+/* alterações */
+.chg{display:grid;gap:4px}
+.chg .l1{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.chg .nm{font-weight:650;overflow-wrap:anywhere}
+.chg .tm{font-size:12px;color:var(--muted);white-space:nowrap}
+.chg .dt{font-size:13px;color:var(--muted)}
+.chg .note{font-size:13px;color:var(--amber);font-style:italic}
+.delta{font-weight:700;font-size:13px;padding:2px 9px;border-radius:6px;white-space:nowrap}
+.delta.up{background:var(--green-bg);color:var(--green)}.delta.down{background:var(--red-bg);color:var(--red)}
+.pill{background:var(--amber);color:#1c1917;font-weight:800;font-size:11px;min-width:18px;height:18px;border-radius:9px;display:inline-grid;place-items:center;padding:0 5px;position:absolute;top:4px;right:calc(50% - 22px)}
+
+/* navegação inferior */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--panel);border-top:1px solid #000;display:flex;justify-content:center;padding-bottom:var(--safe-b)}
+nav.tabs .in{width:100%;max-width:720px;display:grid;grid-template-columns:repeat(4,1fr)}
+.tab{height:62px;display:grid;justify-items:center;align-content:center;gap:2px;color:var(--dim);font-size:11.5px;font-weight:650;position:relative}
+.tab[aria-current="page"]{color:var(--blue-hi)}
+.tab:active{background:#222}
+
+/* folhas (diálogos) */
+#sheets{position:fixed;inset:0;z-index:50;pointer-events:none}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);pointer-events:auto;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+.sheet{width:100%;max-width:560px;background:#222226;border-radius:18px 18px 0 0;padding:18px var(--gutter) calc(18px + var(--safe-b));display:grid;gap:14px;max-height:92dvh;overflow:auto;animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+.sheet h3{margin:0;font-size:18px;color:var(--text-strong);overflow-wrap:anywhere}
+.sheet p{margin:0;color:var(--text);font-size:15px}
+.sheet .sub{color:var(--muted);font-size:13.5px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:#18181B;border-radius:10px;padding:3px;gap:3px}
+.seg button{height:42px;border-radius:8px;font-weight:650;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--blue);color:#fff}
+.seg button[aria-pressed="true"].m-sub{background:var(--btn-minus)}
+.seg button[aria-pressed="true"].m-add{background:var(--blue)}
+.seg button[aria-pressed="true"].m-set{background:#52525B}
+.field{width:100%;height:56px;border-radius:10px;border:1px solid var(--line);background:#18181B;color:var(--text-strong);font:700 26px system-ui;padding:0 14px;text-align:center}
+textarea.field{height:110px;padding:12px 14px;font:16px/1.4 system-ui;text-align:left;resize:vertical}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.quick button{height:44px;border-radius:10px;background:#3F3F46;font-weight:700}
+.quick button:active{background:#52525B}
+.preview{text-align:center;font-size:17px;color:var(--text)}
+.preview b{color:var(--amber)}
+.preview.warn{color:var(--amber);font-size:14px}
+.menu-item{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;border-radius:10px;padding:0 12px;text-align:left;font-weight:600}
+.menu-item:active{background:#333}
+.menu-item small{display:block;color:var(--muted);font-weight:400;font-size:12.5px}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + var(--safe-b));z-index:60;background:#3F3F46;color:#fff;border-radius:12px;padding:10px 14px;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.45);font-size:14.5px}
+#toast button{color:var(--amber);font-weight:700;padding:6px 4px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">GKever<small id="subtitle">Inventário</small></div>
+      <button class="icon-btn" id="btn-menu" aria-label="Menu" type="button">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+    <div class="search">
+      <input id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Pesquisa global..." aria-label="Pesquisa global">
+      <button class="clear" id="q-clear" type="button" aria-label="Limpar pesquisa" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="main" aria-live="polite"></main>
+  <nav class="tabs" aria-label="Secções"><div class="in" id="tabs"></div></nav>
+</div>
+<div id="sheets"></div>
+<div id="toast" role="status" hidden></div>
+<input id="file" type="file" accept=".json,application/json" multiple hidden>
+
+<script>
+(function () {
+'use strict';
+
+/* ---------- constantes e estado ---------- */
+const SEP = '::ID::';
+const PALETTE = [
+  {bg:'#0369A1',fg:'#E0F2FE'},{bg:'#6D28D9',fg:'#EDE9FE'},{bg:'#B45309',fg:'#FEF3C7'},{bg:'#047857',fg:'#D1FAE5'},
+  {bg:'#BE185D',fg:'#FCE7F3'},{bg:'#4338CA',fg:'#E0E7FF'},{bg:'#0F766E',fg:'#CCFBF1'},{bg:'#9A3412',fg:'#FFEDD5'}
+];
+const K = {inv:'gkever.inv', base:'gkever.base', tags:'gkever.tags', log:'gkever.log', meta:'gkever.meta'};
+let storageWarned = false;
+
+function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); return true; }
+  catch (e) { if (!storageWarned) { storageWarned = true; toast('Não foi possível guardar no telemóvel (armazenamento cheio ou bloqueado).'); } return false; }
+}
+
+const S = {
+  inv: load(K.inv, null), base: load(K.base, null),
+  tags: load(K.tags, {library: [], assignments: {}}),
+  log: load(K.log, []), meta: load(K.meta, {importedAt: null, exportedLen: 0}),
+  view: 'folders', path: [], tagFilter: null, query: '', highlight: null
+};
+if (!S.tags || !Array.isArray(S.tags.library)) S.tags = {library: [], assignments: {}};
+
+/* ---------- utilitários de dados ---------- */
+const isFolder = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+const display = key => key.split(SEP)[0];
+const pkey = path => path.join('\n');
+const cmp = (a, b) => a.localeCompare(b, 'pt', {sensitivity: 'base', numeric: true});
+
+function getNode(path) {
+  let d = S.inv;
+  for (const k of path) { if (isFolder(d) && k in d) d = d[k]; else return null; }
+  return d;
+}
+function tagOf(path) {
+  const t = S.tags.assignments && S.tags.assignments[pkey(path)];
+  return t && S.tags.library.includes(t) ? t : null;
+}
+function stats(node) {
+  let folders = 0, pieces = 0, units = 0;
+  const stack = [node];
+  while (stack.length) {
+    const d = stack.pop();
+    for (const v of Object.values(d)) {
+      if (isFolder(v)) { folders++; stack.push(v); } else { pieces++; units += Number(v) || 0; }
+    }
+  }
+  return {folders, pieces, units};
+}
+function allPieces() {
+  const out = [];
+  (function walk(node, path) {
+    for (const [k, v] of Object.entries(node)) {
+      if (isFolder(v)) walk(v, path.concat(k)); else out.push({path: path.concat(k), key: k, qty: Number(v) || 0});
+    }
+  })(S.inv || {}, []);
+  return out;
+}
+function allFolders() {
+  const out = [];
+  (function walk(node, path) {
+    for (const [k, v] of Object.entries(node)) if (isFolder(v)) { const p = path.concat(k); out.push({path: p, key: k}); walk(v, p); }
+  })(S.inv || {}, []);
+  return out;
+}
+function validInv(d) {
+  if (!isFolder(d)) return false;
+  return Object.values(d).every(v => isFolder(v) ? validInv(v) : (typeof v === 'number' && Number.isInteger(v)));
+}
+function haystack(s) {
+  const n = String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const spaced = n.replace(/[\s\-_/,;:|>]+/g, ' ').trim();
+  const joined = n.replace(/[-_]+/g, '').replace(/[\s/,;:|>]+/g, ' ').trim();
+  return spaced + ' ' + joined + ' ' + spaced.replace(/ /g, '');
+}
+function queryTokens(q) {
+  return q.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[\s\-_/,;:|>]+/g, ' ').trim().split(' ').filter(Boolean);
+}
+const pad = n => String(n).padStart(2, '0');
+function nowStr() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+const pending = () => Math.max(0, S.log.length - (S.meta.exportedLen || 0));
+
+/* ---------- DOM ---------- */
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  if (props) for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (v === true) el.setAttribute(k, '');
+    else el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) { if (kid == null || kid === false) continue; el.append(kid.nodeType ? kid : document.createTextNode(String(kid))); }
+  return el;
+}
+const svg = (inner, size = 22) => { const w = h('span'); w.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`; return w.firstChild; };
+const ICON = {
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  tag: '<path d="M20 13l-7 7-9-9V4h7z"/><circle cx="8" cy="8" r="1.3"/>',
+  chart: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+  list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  chev: '<path d="M9 6l6 6-6 6"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+  download: '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/>'
+};
+function chip(tag) {
+  const i = S.tags.library.indexOf(tag);
+  const c = PALETTE[(i < 0 ? 0 : i) % PALETTE.length];
+  return h('span', {class: 'chip', style: `background:${c.bg};color:${c.fg}`}, tag);
+}
+
+/* ---------- avisos, folhas, confirmações ---------- */
+let toastTimer = null;
+function toast(msg, action) {
+  const t = document.getElementById('toast');
+  t.replaceChildren(h('span', null, msg));
+  if (action) t.append(h('button', {type: 'button', onclick: () => { clearTimeout(toastTimer); t.hidden = true; action.fn(); }}, action.label));
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 7000 : 4200);
+}
+function openSheet(content, onClose) {
+  clearTimeout(toastTimer); document.getElementById('toast').hidden = true;
+  const host = document.getElementById('sheets');
+  const back = h('div', {class: 'backdrop'});
+  const sheet = h('div', {class: 'sheet', role: 'dialog', 'aria-modal': 'true'}, content);
+  back.append(sheet);
+  let closed = false;
+  const close = () => { if (closed) return; closed = true; document.removeEventListener('keydown', onKey); back.remove(); if (onClose) onClose(); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  back.addEventListener('click', e => { if (e.target === back) close(); });
+  document.addEventListener('keydown', onKey);
+  host.append(back);
+  return close;
+}
+function ask({title, text, ok = 'Confirmar', danger = false}) {
+  return new Promise(res => {
+    let done = false;
+    const finish = v => { if (!done) { done = true; res(v); } };
+    const close = openSheet([
+      h('h3', null, title), h('p', null, text),
+      h('div', {class: 'row'},
+        h('button', {class: 'btn gray', type: 'button', onclick: () => { close(); }}, 'Cancelar'),
+        h('button', {class: 'btn ' + (danger ? 'red' : 'green'), type: 'button', onclick: () => { finish(true); close(); }}, ok))
+    ], () => finish(false));
+  });
+}
+
+/* ---------- alterações de quantidade ---------- */
+let lastChange = null;
+function applyQty(path, newQty, silent) {
+  const parent = getNode(path.slice(0, -1)), key = path[path.length - 1];
+  if (!parent || !(key in parent) || isFolder(parent[key])) return false;
+  const before = Number(parent[key]) || 0;
+  if (before === newQty) return false;
+  parent[key] = newQty;
+  const entry = {ts: nowStr(), tipo: 'qtd', alvo: 'peça', item: display(key), caminho: path.slice(0, -1).join(' > '),
+                 antes: before, depois: newQty, detalhe: '', nota: '', origem: 'telemovel'};
+  S.log.push(entry);
+  save(K.inv, S.inv); save(K.log, S.log);
+  lastChange = {path, before, entry};
+  if (!silent) {
+    toast(`${entry.item}: ${before} → ${newQty}`, {label: 'Desfazer', fn: undo});
+  }
+  render(true);
+  return true;
+}
+function undo() {
+  if (!lastChange) return;
+  const {path, before, entry} = lastChange;
+  const parent = getNode(path.slice(0, -1)), key = path[path.length - 1];
+  if (parent && key in parent) parent[key] = before;
+  const i = S.log.lastIndexOf(entry);
+  if (i >= 0) S.log.splice(i, 1);
+  if (S.meta.exportedLen > S.log.length) S.meta.exportedLen = S.log.length;
+  lastChange = null;
+  save(K.inv, S.inv); save(K.log, S.log); save(K.meta, S.meta);
+  render(true);
+}
+function openQty(path, mode) {
+  const parent = getNode(path.slice(0, -1)), key = path[path.length - 1];
+  if (!parent || !(key in parent)) return;
+  const cur = Number(parent[key]) || 0;
+  let m = mode;
+  const input = h('input', {class: 'field', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', 'aria-label': 'Quantidade', placeholder: '0'});
+  const preview = h('div', {class: 'preview'});
+  const segBtns = {};
+  const okBtn = h('button', {class: 'btn green block', type: 'button'}, 'Confirmar');
+  const val = () => { const n = parseInt(input.value.replace(/\D/g, ''), 10); return Number.isFinite(n) ? n : null; };
+  function result() {
+    const n = val();
+    if (n === null) return null;
+    return m === 'add' ? cur + n : m === 'sub' ? Math.max(0, cur - n) : n;
+  }
+  function update() {
+    for (const k of Object.keys(segBtns)) segBtns[k].setAttribute('aria-pressed', String(k === m));
+    const n = val(), r = result();
+    preview.className = 'preview';
+    if (n === null) preview.replaceChildren(`Atual: `, h('b', null, cur));
+    else {
+      preview.replaceChildren(`${cur} → `, h('b', null, r));
+      if (m === 'sub' && n > cur) { preview.className = 'preview warn'; preview.replaceChildren(`Só há ${cur}: a quantidade fica a `, h('b', null, 0)); }
+    }
+    okBtn.disabled = r === null || r === cur;
+  }
+  const seg = h('div', {class: 'seg', role: 'group', 'aria-label': 'Tipo de alteração'},
+    ...[['add', 'Adicionar', 'm-add'], ['sub', 'Retirar', 'm-sub'], ['set', 'Definir', 'm-set']].map(([k, label, cls]) =>
+      (segBtns[k] = h('button', {type: 'button', class: cls, onclick: () => { m = k; update(); input.focus(); }}, label))));
+  const quick = h('div', {class: 'quick'}, ...[1, 5, 10, 50].map(n =>
+    h('button', {type: 'button', onclick: () => { input.value = String((val() || 0) + n); update(); }}, '+' + n)));
+  input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 7); update(); });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !okBtn.disabled) okBtn.click(); });
+  const close = openSheet([
+    h('div', null, h('h3', null, display(key)), h('div', {class: 'sub'}, path.slice(0, -1).join(' › ') || 'Raiz')),
+    seg, input, quick, preview, okBtn
+  ]);
+  okBtn.addEventListener('click', () => { const r = result(); if (r !== null) { close(); applyQty(path, r); } });
+  update();
+  setTimeout(() => input.focus(), 60);
+}
+function openNote(entry) {
+  const ta = h('textarea', {class: 'field', 'aria-label': 'Nota', placeholder: 'Escreva uma nota (opcional)'});
+  ta.value = entry.nota || '';
+  const close = openSheet([
+    h('h3', null, 'Nota da alteração'),
+    h('div', {class: 'sub'}, `${entry.item}: ${entry.antes} → ${entry.depois}`),
+    ta,
+    h('div', {class: 'row'},
+      h('button', {class: 'btn gray', type: 'button', onclick: () => close()}, 'Cancelar'),
+      h('button', {class: 'btn green', type: 'button', onclick: () => { entry.nota = ta.value.trim(); save(K.log, S.log); close(); render(true); }}, 'Guardar'))
+  ]);
+  setTimeout(() => ta.focus(), 60);
+}
+
+/* ---------- importar / exportar ---------- */
+function detect(d) {
+  if (d && Array.isArray(d.entries)) return 'hist';
+  if (d && Array.isArray(d.library) && isFolder(d.assignments)) return 'tags';
+  if (validInv(d)) return 'inv';
+  return null;
+}
+async function importFiles(files) {
+  let inv = null, tags = null, invName = '';
+  const problems = [];
+  for (const f of files) {
+    try {
+      const d = JSON.parse(await f.text());
+      const kind = detect(d);
+      if (kind === 'inv') { inv = d; invName = f.name; }
+      else if (kind === 'tags') tags = d;
+      else if (kind === 'hist') problems.push(`${f.name}: é um ficheiro de histórico, não de inventário.`);
+      else problems.push(`${f.name}: não parece ser um inventario.json nem um tags.json do GKever.`);
+    } catch (e) { problems.push(`${f.name}: não é um ficheiro JSON válido.`); }
+  }
+  if (!inv && !tags) {
+    openSheet([h('h3', null, 'Nada importado'), h('p', null, problems.join(' ') || 'Escolha o inventario.json e o tags.json.'),
+      h('button', {class: 'btn gray block', type: 'button', onclick: e => e.target.closest('.backdrop').remove()}, 'Fechar')]);
+    return;
+  }
+  if (inv && pending() > 0) {
+    const ok = await ask({title: 'Substituir o inventário?', danger: true, ok: 'Importar e descartar',
+      text: `Tem ${pending()} alteração(ões) de quantidade que ainda não exportou. Se importar agora, perdem-se.`});
+    if (!ok) return;
+  }
+  if (inv) {
+    S.inv = inv; S.base = JSON.parse(JSON.stringify(inv)); S.log = [];
+    S.meta = {importedAt: new Date().toISOString(), exportedLen: 0, file: invName};
+    S.path = []; S.tagFilter = null; lastChange = null;
+    save(K.inv, S.inv); save(K.base, S.base); save(K.log, S.log); save(K.meta, S.meta);
+  }
+  if (tags) {
+    S.tags = {library: tags.library.filter(t => typeof t === 'string'), assignments: tags.assignments};
+    save(K.tags, S.tags);
+  }
+  const parts = [];
+  if (inv) parts.push(`inventário (${stats(S.inv).pieces} peças)`);
+  if (tags) parts.push(`tags (${S.tags.library.length})`);
+  toast('Importado: ' + parts.join(' e ') + (problems.length ? '. Ignorados: ' + problems.length : '.'));
+  render();
+}
+function download(name, text) {
+  const url = URL.createObjectURL(new Blob([text], {type: 'application/json'}));
+  const a = h('a', {href: url, download: name});
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function exportInv() {
+  if (!S.inv) return;
+  download('inventario.json', JSON.stringify(S.inv, null, 4));
+  S.meta.exportedLen = S.log.length; save(K.meta, S.meta);
+  toast('Exportado: inventario.json. Procure-o nas Transferências do telemóvel.');
+  render(true);
+}
+function exportLog() {
+  const data = {criado: S.log[0] ? S.log[0].ts : nowStr(), nota: 'Alterações feitas no telemóvel (GKever Mobile)', guardado: nowStr(), entries: S.log};
+  download('alteracoes_telemovel.json', JSON.stringify(data, null, 4));
+  toast('Exportado: alteracoes_telemovel.json');
+}
+async function resetToImported() {
+  if (!S.base) return;
+  const ok = await ask({title: 'Repor o inventário importado?', danger: true, ok: 'Repor',
+    text: `Todas as ${S.log.length} alteração(ões) feitas no telemóvel são descartadas e as quantidades voltam ao ficheiro importado.`});
+  if (!ok) return;
+  S.inv = JSON.parse(JSON.stringify(S.base)); S.log = []; S.meta.exportedLen = 0; lastChange = null;
+  save(K.inv, S.inv); save(K.log, S.log); save(K.meta, S.meta);
+  toast('Inventário reposto.'); render(true);
+}
+const pickFiles = () => document.getElementById('file').click();
+
+function openMenu() {
+  const item = (icon, title, sub, fn) => h('button', {class: 'menu-item', type: 'button', onclick: () => { close(); fn(); }},
+    svg(ICON[icon]), h('span', null, title, sub ? h('small', null, sub) : null));
+  const close = openSheet([
+    h('h3', null, 'Menu'),
+    item('upload', 'Importar ficheiros', 'inventario.json e tags.json do PC', pickFiles),
+    item('download', 'Exportar inventario.json', S.inv ? 'Com as alterações feitas aqui' : 'Importe primeiro', () => S.inv && exportInv()),
+    item('help', 'Como funciona', null, openHelp)
+  ]);
+}
+function openHelp() {
+  const close = openSheet([
+    h('h3', null, 'Como funciona'),
+    h('p', null, 'Esta app guarda uma cópia do seu inventário só neste telemóvel. Nada é enviado para a internet.'),
+    h('p', null, '1. No PC, copie o inventario.json e o tags.json (pasta "Base de Dados") para o telemóvel e importe-os aqui.'),
+    h('p', null, '2. Consulte e ajuste quantidades com + e −. Cada alteração fica registada.'),
+    h('p', null, '3. Para levar as alterações de volta, exporte o inventario.json e coloque-o na pasta do PC.'),
+    h('p', {class: 'sub'}, 'Atenção: se alterar o inventário no PC e no telemóvel ao mesmo tempo, os ficheiros divergem. Escolha sempre qual a versão que fica.'),
+    h('button', {class: 'btn gray block', type: 'button', onclick: () => close()}, 'Fechar')
+  ]);
+}
+
+/* ---------- vistas ---------- */
+const main = document.getElementById('main');
+
+function pieceCard(p, showPath) {
+  const tag = tagOf(p.path);
+  const flash = S.highlight && S.highlight === pkey(p.path);
+  const node = getNode(p.path.slice(0, -1));
+  const qty = node ? (Number(node[p.key]) || 0) : p.qty;
+  const nameEl = showPath
+    ? h('button', {class: 'p-name', type: 'button', onclick: () => goToPiece(p)}, display(p.key))
+    : h('div', {class: 'p-name'}, display(p.key));
+  return h('div', {class: 'card piece' + (flash ? ' flash' : ''), 'data-pk': pkey(p.path)},
+    h('div', {class: 'p-info'}, nameEl, tag ? chip(tag) : null, showPath ? h('div', {class: 'p-path'}, p.path.slice(0, -1).join(' › ')) : null),
+    h('div', {class: 'ctrl'},
+      h('button', {class: 'minus', type: 'button', 'aria-label': 'Retirar de ' + display(p.key), onclick: () => openQty(p.path, 'sub')}, '−'),
+      h('button', {class: 'qty' + (qty === 0 ? ' zero' : ''), type: 'button', 'aria-label': `Quantidade ${qty}. Definir`, onclick: () => openQty(p.path, 'set')}, String(qty)),
+      h('button', {class: 'plus', type: 'button', 'aria-label': 'Adicionar a ' + display(p.key), onclick: () => openQty(p.path, 'add')}, '+')));
+}
+function folderCard(path) {
+  const st = stats(getNode(path));
+  return h('button', {class: 'card folder', type: 'button', onclick: () => { S.path = path; S.view = 'folders'; render(); window.scrollTo(0, 0); }},
+    svg(ICON.folder, 20),
+    h('span', {class: 'f-name'}, path[path.length - 1]),
+    h('span', {class: 'f-meta'}, `${st.pieces} peça${st.pieces === 1 ? '' : 's'} · ${st.units} un.`),
+    svg(ICON.chev, 18));
+}
+function goToPiece(p) {
+  S.query = ''; document.getElementById('q').value = ''; document.getElementById('q-clear').hidden = true;
+  S.view = 'folders'; S.path = p.path.slice(0, -1); S.highlight = pkey(p.path); S.tagFilter = null;
+  render();
+  const target = [...main.querySelectorAll('[data-pk]')].find(e => e.dataset.pk === S.highlight);
+  if (target) target.scrollIntoView({block: 'center'});
+  setTimeout(() => { S.highlight = null; }, 2000);
+}
+
+function viewWelcome() {
+  main.replaceChildren(h('div', {class: 'welcome'},
+    h('h1', null, 'Bem-vindo ao GKever'),
+    h('p', null, 'Para começar, importe os ficheiros do inventário que tem no PC.'),
+    h('ol', null,
+      h('li', null, 'No PC, abra a pasta "Base de Dados".'),
+      h('li', null, 'Envie o inventario.json e o tags.json para o telemóvel.'),
+      h('li', null, 'Toque em "Importar" e escolha os dois ficheiros.')),
+    h('button', {class: 'btn green block', type: 'button', onclick: pickFiles}, svg(ICON.upload, 20), 'Importar ficheiros'),
+    h('p', {class: 'sub', style: 'color:var(--muted);font-size:13px'}, 'Os dados ficam guardados só neste telemóvel.')));
+}
+
+function viewFolders() {
+  const node = getNode(S.path);
+  if (!node) { S.path = []; return viewFolders(); }
+  const crumbs = h('nav', {class: 'crumbs', 'aria-label': 'Caminho'});
+  crumbs.append(h('button', {class: 'crumb' + (S.path.length === 0 ? ' cur' : ''), type: 'button', onclick: () => { S.path = []; render(); }}, 'Início'));
+  S.path.forEach((seg, i) => {
+    crumbs.append(h('span', {class: 'sep', 'aria-hidden': 'true'}, '›'));
+    const last = i === S.path.length - 1;
+    crumbs.append(h('button', {class: 'crumb' + (last ? ' cur' : ''), type: 'button', onclick: () => { S.path = S.path.slice(0, i + 1); render(); }}, seg));
+  });
+  requestAnimationFrame(() => { crumbs.scrollLeft = crumbs.scrollWidth; });
+  const folders = Object.keys(node).filter(k => isFolder(node[k])).sort(cmp);
+  const pieces = Object.keys(node).filter(k => !isFolder(node[k]))
+    .sort((a, b) => cmp(display(a), display(b)) || cmp(tagOf(S.path.concat(a)) || '', tagOf(S.path.concat(b)) || ''));
+  const els = [crumbs];
+  if (folders.length) els.push(...folders.map(k => folderCard(S.path.concat(k))));
+  if (pieces.length) {
+    if (folders.length) els.push(h('div', {class: 'h2'}, 'Peças'));
+    els.push(...pieces.map(k => pieceCard({path: S.path.concat(k), key: k, qty: Number(node[k]) || 0}, false)));
+  }
+  if (!folders.length && !pieces.length) els.push(h('div', {class: 'empty'}, S.path.length ? 'Esta pasta está vazia.' : 'O inventário está vazio.'));
+  main.replaceChildren(...els);
+}
+
+function viewSearch() {
+  const toks = queryTokens(S.query);
+  const fol = allFolders().filter(f => { const hs = haystack(f.path.join(' ')); return toks.every(t => hs.includes(t)); });
+  const pcs = allPieces().filter(p => {
+    const hs = haystack(p.path.map(display).join(' ') + ' ' + (tagOf(p.path) || ''));
+    return toks.every(t => hs.includes(t));
+  }).sort((a, b) => cmp(display(a.key), display(b.key)));
+  const total = fol.length + pcs.length;
+  const els = [h('div', {class: 'hint'}, total ? `${pcs.length} peça${pcs.length === 1 ? '' : 's'}` + (fol.length ? ` e ${fol.length} pasta${fol.length === 1 ? '' : 's'}` : '') : 'Sem resultados para esta pesquisa.')];
+  if (fol.length) { els.push(h('div', {class: 'h2'}, 'Pastas')); els.push(...fol.slice(0, 40).map(f => folderCard(f.path))); }
+  if (pcs.length) { els.push(h('div', {class: 'h2'}, 'Peças')); els.push(...pcs.slice(0, 120).map(p => pieceCard(p, true)));
+    if (pcs.length > 120) els.push(h('div', {class: 'hint'}, `A mostrar 120 de ${pcs.length}. Refine a pesquisa.`)); }
+  main.replaceChildren(...els);
+}
+
+function viewTags() {
+  const lib = S.tags.library;
+  const pcs = allPieces();
+  if (S.tagFilter) {
+    const list = pcs.filter(p => tagOf(p.path) === S.tagFilter).sort((a, b) => cmp(display(a.key), display(b.key)));
+    main.replaceChildren(
+      h('div', {class: 'row', style: 'align-items:center;justify-content:space-between;flex-wrap:nowrap'},
+        h('button', {class: 'crumb', type: 'button', onclick: () => { S.tagFilter = null; render(); }}, '‹ Todas as tags'), chip(S.tagFilter)),
+      h('div', {class: 'hint'}, `${list.length} peça${list.length === 1 ? '' : 's'}`),
+      ...list.map(p => pieceCard(p, true)));
+    return;
+  }
+  if (!lib.length) { main.replaceChildren(h('div', {class: 'empty'}, 'Ainda não há tags. Importe o tags.json do PC.')); return; }
+  const counts = {}; for (const p of pcs) { const t = tagOf(p.path); if (t) counts[t] = (counts[t] || 0) + 1; }
+  main.replaceChildren(h('div', {class: 'hint'}, 'Toque numa tag para ver as peças.'),
+    ...lib.map(t => h('button', {class: 'card folder', type: 'button', onclick: () => { S.tagFilter = t; render(); window.scrollTo(0, 0); }},
+      chip(t), h('span', {class: 'f-name'}), h('span', {class: 'f-meta'}, `${counts[t] || 0} peça${(counts[t] || 0) === 1 ? '' : 's'}`), svg(ICON.chev, 18))));
+}
+
+function viewSummary() {
+  const st = stats(S.inv);
+  const mains = Object.keys(S.inv).filter(k => isFolder(S.inv[k])).sort(cmp).map(k => ({k, ...stats(S.inv[k])}));
+  const max = Math.max(1, ...mains.map(m => m.units));
+  const zero = allPieces().filter(p => p.qty === 0).sort((a, b) => cmp(display(a.key), display(b.key)));
+  main.replaceChildren(
+    h('div', {class: 'stats'},
+      h('div', {class: 'stat'}, h('b', {style: 'color:var(--blue-hi)'}, st.folders), h('span', null, 'Pastas')),
+      h('div', {class: 'stat'}, h('b', {style: 'color:var(--green)'}, st.pieces), h('span', null, 'Peças')),
+      h('div', {class: 'stat'}, h('b', {style: 'color:var(--amber)'}, st.units), h('span', null, 'Unidades'))),
+    h('div', {class: 'h2'}, 'Por pasta principal'),
+    ...mains.map(m => h('button', {class: 'card mf', type: 'button', onclick: () => { S.path = [m.k]; S.view = 'folders'; render(); window.scrollTo(0, 0); }},
+      h('div', {class: 'top-line'}, h('span', {class: 'nm'}, m.k), h('span', {class: 'un'}, m.units + ' un.')),
+      h('div', {class: 'f-meta', style: 'color:var(--muted);font-size:12.5px'}, `${m.pieces} peças · ${m.folders} subpastas`),
+      h('div', {class: 'bar'}, h('i', {style: `width:${Math.round(m.units / max * 100)}%`})))),
+    h('div', {class: 'h2'}, `Sem stock (${zero.length})`),
+    ...(zero.length ? zero.map(p => pieceCard(p, true)) : [h('div', {class: 'hint'}, 'Não há peças com quantidade 0.')]));
+}
+
+function viewChanges() {
+  const els = [];
+  const n = pending();
+  els.push(h('div', {class: 'hint'}, S.log.length
+    ? `${S.log.length} alteração(ões) feitas neste telemóvel` + (n ? `, ${n} por exportar.` : '. Todas exportadas.')
+    : 'Ainda não fez alterações neste telemóvel.'));
+  els.push(h('div', {class: 'row'},
+    h('button', {class: 'btn green', type: 'button', onclick: exportInv}, svg(ICON.download, 20), 'Exportar inventario.json'),
+    h('button', {class: 'btn gray', type: 'button', onclick: exportLog, disabled: !S.log.length}, 'Exportar alterações')));
+  if (S.log.length) els.push(h('button', {class: 'btn red block', type: 'button', onclick: resetToImported}, 'Repor ao ficheiro importado'));
+  for (const e of S.log.slice().reverse()) {
+    const d = e.depois - e.antes;
+    els.push(h('button', {class: 'card chg', type: 'button', style: 'width:100%;text-align:left', onclick: () => openNote(e), 'aria-label': 'Editar nota de ' + e.item},
+      h('div', {class: 'l1'}, h('span', {class: 'nm'}, e.item), h('span', {class: 'delta ' + (d >= 0 ? 'up' : 'down')}, (d >= 0 ? '+' : '−') + Math.abs(d))),
+      h('div', {class: 'dt'}, `${e.caminho}  ·  ${e.antes} → ${e.depois}`),
+      h('div', {class: 'tm'}, `${e.ts.slice(8, 10)}/${e.ts.slice(5, 7)}/${e.ts.slice(0, 4)} ${e.ts.slice(11, 16)}`),
+      e.nota ? h('div', {class: 'note'}, 'Nota: ' + e.nota) : h('div', {class: 'tm'}, 'Toque para adicionar nota')));
+  }
+  main.replaceChildren(...els);
+}
+
+/* ---------- navegação e desenho ---------- */
+const TABS = [['folders', 'Pastas', 'folder'], ['tags', 'Tags', 'tag'], ['summary', 'Resumo', 'chart'], ['changes', 'Alterações', 'list']];
+function renderTabs() {
+  const box = document.getElementById('tabs');
+  box.replaceChildren(...TABS.map(([id, label, icon]) => {
+    const b = h('button', {class: 'tab', type: 'button', 'aria-current': S.view === id && !S.query.trim() ? 'page' : null,
+      onclick: () => { S.view = id; if (id !== 'tags') S.tagFilter = null; clearSearch(false); render(); window.scrollTo(0, 0); }}, svg(ICON[icon], 22), label);
+    if (id === 'changes' && pending() > 0) b.append(h('span', {class: 'pill'}, pending()));
+    return b;
+  }));
+}
+function clearSearch(doRender = true) {
+  S.query = ''; const q = document.getElementById('q'); q.value = ''; document.getElementById('q-clear').hidden = true;
+  if (doRender) render();
+}
+function render(keepScroll) {
+  const y = window.scrollY;
+  renderTabs();
+  const sub = document.getElementById('subtitle');
+  if (!S.inv) { sub.textContent = 'Inventário'; viewWelcome(); return; }
+  const st = stats(S.inv);
+  const when = S.meta.importedAt ? new Date(S.meta.importedAt).toLocaleDateString('pt-PT') : '';
+  sub.textContent = `${st.pieces} peças · ${st.units} un.` + (when ? ` · importado a ${when}` : '');
+  if (S.query.trim()) viewSearch();
+  else if (S.view === 'tags') viewTags();
+  else if (S.view === 'summary') viewSummary();
+  else if (S.view === 'changes') viewChanges();
+  else viewFolders();
+  if (keepScroll) window.scrollTo(0, y);
+}
+
+/* ---------- eventos ---------- */
+let qTimer = null;
+document.getElementById('q').addEventListener('input', e => {
+  const v = e.target.value;
+  document.getElementById('q-clear').hidden = !v;
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => { S.query = v; render(); }, 120);
+});
+document.getElementById('q-clear').addEventListener('click', () => { clearSearch(); document.getElementById('q').focus(); });
+document.getElementById('btn-menu').addEventListener('click', openMenu);
+document.getElementById('file').addEventListener('change', e => {
+  const files = [...e.target.files]; e.target.value = '';
+  if (files.length) importFiles(files);
+});
+
+render();
+
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+})();
+</script>
+</body>
+</html>
