@@ -107,10 +107,10 @@ button.chip{cursor:pointer}
 .welcome ol{margin:0;padding-left:20px;font-size:15px;display:grid;gap:6px}
 
 /* botões */
-.btn{min-height:52px;border-radius:16px;padding:0 18px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;
+.btn{min-height:52px;border-radius:999px;padding:0 18px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;
   background:var(--surface);border:1px solid var(--line);color:var(--text);transition:transform .1s,opacity .2s}
 .btn:active{transform:scale(.98)}
-.btn.green,.btn.teal{background:var(--grad);color:var(--on-grad);border-color:transparent}   /* o único botão principal do ecrã */
+.btn.green,.btn.teal{background:var(--grad);background-origin:border-box;background-clip:border-box;color:var(--on-grad);border-color:transparent}   /* o fundo cobre também a borda: sem cores repetidas nos cantos */   /* o único botão principal do ecrã */
 .btn.gray{background:var(--surface);border:1px solid var(--line);color:var(--text)}
 .btn.red{background:transparent;border-color:transparent;color:var(--danger)}
 .btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
