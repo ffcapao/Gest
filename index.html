@@ -42,7 +42,6 @@ img{-webkit-user-drag:none}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 [hidden]{display:none!important}
-.no-anim *,.no-anim *::before,.no-anim *::after{animation:none!important;transition:none!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 
 /* topo */
@@ -305,7 +304,7 @@ body.onb .search,body.onb nav.tabs{display:none}
   };
   const MODES = [['escuro', 'Escuro'], ['claro', 'Claro'], ['auto', 'Automático'], ['auto_escuro', 'Auto escuro'], ['auto_claro', 'Auto claro']];
   const KEY = 'gkever.ui';   // só gostos visuais; as chaves dos dados não se tocam
-  const DEFAULT = {pal: 'classico', mode: 'escuro', anim: true, mods: {kits: true, lots: true, labels: true, tags: true}};
+  const DEFAULT = {pal: 'classico', mode: 'escuro', mods: {kits: true, lots: true, labels: true, tags: true}};
 
   const rgb = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
   const hex = c => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
@@ -340,7 +339,6 @@ body.onb .search,body.onb nav.tabs{display:none}
       set('--bg', mix('#f5f5f6', accent, .09)); set('--surface', mix('#ffffff', accent, .04));
       set('--surface-2', mix('#eeeff1', accent, .11)); set('--line', mix('#e2e3e7', accent, .14));
     } else { ['--bg', '--surface', '--surface-2', '--line'].forEach(n => set(n, null)); }
-    root.classList.toggle('no-anim', !prefs.anim);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#0b0b0c');
   }
@@ -1070,9 +1068,7 @@ function openAspect() {
         h('span', {class: 'dot', style: `background:linear-gradient(135deg,${p.g[0]},${p.g[1]})`}), p.n)));
     const mode = h('div', {class: 'choices'}, ...T.MODES.map(([k, n]) =>
       h('button', {type: 'button', class: 'pchoice' + (cur.mode === k ? ' on' : ''), 'aria-pressed': String(cur.mode === k), onclick: () => { T.set({mode: k}); draw(); }}, n)));
-    const sw = h('button', {type: 'button', class: 'switch-row', role: 'switch', 'aria-checked': String(!!cur.anim), onclick: () => { T.set({anim: !cur.anim}); draw(); }},
-      h('span', null, h('b', null, 'Animações ligadas'), h('small', null, 'Desligue para a app não ter movimento')), h('span', {class: 'switch' + (cur.anim ? ' on' : '')}));
-    box.replaceChildren(h('div', {class: 'lbl', style: 'margin-bottom:8px'}, 'Paleta'), pal, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Modo'), mode, h('div', {style: 'margin-top:16px'}, sw), h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Módulos'), h('div', {class: 'choices'}, ...MODULES.map(([k, name]) => { const on = (cur.mods || {})[k] !== false; return h('button', {type: 'button', class: 'pchoice' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => { T.set({mods: Object.assign({kits: true, lots: true, labels: true, tags: true}, cur.mods || {}, {[k]: !on})}); draw(); render(true); }}, name); })));
+    box.replaceChildren(h('div', {class: 'lbl', style: 'margin-bottom:8px'}, 'Paleta'), pal, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Modo'), mode, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Módulos'), h('div', {class: 'choices'}, ...MODULES.map(([k, name]) => { const on = (cur.mods || {})[k] !== false; return h('button', {type: 'button', class: 'pchoice' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => { T.set({mods: Object.assign({kits: true, lots: true, labels: true, tags: true}, cur.mods || {}, {[k]: !on})}); draw(); render(true); }}, name); })));
   }
   draw();
   const close = openSheet([h('h3', null, 'Aspeto'), box, h('button', {class: 'btn block', type: 'button', onclick: () => close()}, 'Fechar')]);
