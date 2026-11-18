@@ -59,7 +59,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .search .clear{position:absolute;right:2px;top:2px;width:44px;height:44px;display:grid;place-items:center;color:var(--muted)}
 
 /* conteúdo */
-main{flex:1;min-width:0;padding:8px var(--gutter) calc(var(--nav-h) + 32px + var(--safe-b));display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-content:start}
+main{flex:1;min-width:0;padding:8px var(--gutter) calc(var(--nav-h) + 88px + var(--safe-b));display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-content:start}
 main.enter>*{animation:rise .25s ease both}
 main.enter>*:nth-child(2){animation-delay:.03s}main.enter>*:nth-child(3){animation-delay:.06s}main.enter>*:nth-child(4){animation-delay:.09s}
 main.enter>*:nth-child(5){animation-delay:.12s}main.enter>*:nth-child(n+6){animation-delay:.15s}
@@ -280,6 +280,38 @@ body.onb .search,body.onb nav.tabs{display:none}
 .period{display:grid;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px}
 .mv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:left}
 .mv span{display:block;font-size:12px;color:var(--muted);font-weight:600}.mv b{font-size:20px;font-variant-numeric:tabular-nums}
+/* lista compacta de peças */
+.hdr{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.statline{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13.5px;font-weight:600}
+.statline b{color:var(--text)}.statline .bad b{color:var(--danger)}.statline i{opacity:.5;font-style:normal}
+.subchips{display:flex;gap:8px;overflow-x:auto;padding:2px 0}
+.subchips .crumb{display:inline-flex;gap:7px;align-items:center}
+.subchips small{color:var(--muted);font-size:12px}
+.fl{display:flex;gap:8px;overflow-x:auto}.fl .crumb{font-size:13px;padding:7px 12px}
+.plist{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:2px 14px;transition:background-color .3s,border-color .3s}
+.prow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.prow:first-child{border-top:0}
+.prow.flash{animation:flashrow 1.8s ease-out}
+@keyframes flashrow{0%,35%{background:color-mix(in srgb,var(--accent) 22%,var(--surface))}100%{background:transparent}}
+.pdot{width:3px;align-self:stretch;border-radius:2px;background:var(--pc);flex:none;opacity:.9}
+.pinfo{flex:1;min-width:0;display:grid;gap:3px;justify-items:start}
+.prow .p-name{font-size:15.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.prow .p-path{font-size:11.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.psub{display:flex;gap:5px;align-items:center;max-width:100%;min-width:0;overflow:hidden}
+.psub .chip{font-size:11.5px;padding:1px 8px;white-space:nowrap;flex:0 1 auto;min-width:0}
+.psub .more{font-size:11.5px;color:var(--muted);font-weight:700;flex:none}
+.mbar{height:3px;border-radius:2px;background:var(--surface-2);overflow:hidden;margin-top:2px;width:100%}.mbar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.step{display:flex;align-items:center;gap:4px;flex:none}
+.step button{width:38px;height:38px;border-radius:12px;background:var(--surface-2);font-size:20px;font-weight:700;display:grid;place-items:center;transition:transform .1s}
+.step button:active{transform:scale(.94)}
+.step .minus{color:var(--danger)}.step .plus{color:var(--accent)}
+.step .qty{width:auto;min-width:46px;padding:0 4px;background:none;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--good)}
+.step .qty.zero{color:var(--danger)}
+.fab{position:fixed;right:16px;bottom:calc(var(--nav-h) + 16px + var(--safe-b));width:50px;height:50px;border-radius:50%;background:var(--grad);background-origin:border-box;color:var(--on-grad);display:grid;place-items:center;
+  box-shadow:0 8px 22px -6px color-mix(in srgb,var(--accent) 55%,transparent);z-index:24;animation:fabin .2s ease}
+.fab:active{transform:scale(.94)}
+@keyframes fabin{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+body.onb .fab{display:none}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 14px + var(--safe-b));z-index:60;background:var(--text);color:var(--bg);border-radius:22px;padding:12px 20px;display:flex;gap:16px;align-items:center;max-width:calc(100% - 32px);font-size:14px;font-weight:700;box-shadow:0 10px 28px -8px rgba(0,0,0,.5);animation:toastin .25s ease}
 @keyframes toastin{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%)}}
 #toast button{color:var(--bg);font-weight:800;text-decoration:underline;padding:6px 2px}
@@ -372,6 +404,7 @@ body.onb .search,body.onb nav.tabs{display:none}
   <main id="main" aria-live="polite"></main>
   <nav class="tabs" aria-label="Secções"><div class="in"><div id="tabs"></div><span class="ind" id="ind" hidden></span></div></nav>
 </div>
+<button class="fab" id="fab" type="button" aria-label="Adicionar peça" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 <div class="edge" id="edge" role="button" tabindex="0" aria-label="Abrir o menu lateral (toque ou arraste)"><span></span></div>
 <div id="sheets"></div>
 <div id="toast" role="status" hidden></div>
@@ -1090,15 +1123,16 @@ function openHelp() {
 /* ---------- vistas ---------- */
 const main = document.getElementById('main');
 
-function pieceChips(p) {
-  const out = [];
-  const open = () => openPiece(p.path);
+function pieceChipList(p) {   // todos os chips da peça, por ordem de importância
+  const out = [], open = () => openPiece(p.path);
+  const tag = modOn('tags') ? tagOf(p.path) : null;
+  if (tag) out.push(chip(tag));
   if (modOn('lots')) for (const t of lotChipTexts(p.path)) out.push(h('button', {class: 'chip lot', type: 'button', onclick: open}, t));
   if (modOn('labels')) for (const t of labelChipTexts(p.path)) out.push(h('button', {class: 'chip lab', type: 'button', onclick: open}, t));
   const ks = modOn('kits') ? kitsUsingPiece(pkey(p.path)) : [];
   if (ks.length && ks.length <= 2) for (const [n] of ks) out.push(h('button', {class: 'chip kit', type: 'button', onclick: open}, (/^kit\b/i.test(n) ? n : 'Kit ' + n)));
   else if (ks.length) out.push(h('button', {class: 'chip kit', type: 'button', onclick: open}, ks.length + ' kits'));
-  return out.length ? h('div', {class: 'chips'}, ...out) : null;
+  return out;
 }
 async function openKit(name) { if (!(await leaveEdit())) return; clearSearch(false); S.view = 'kits'; S.kit = name; S.tagFilter = null; render(); window.scrollTo(0, 0); }
 function openPiece(path) {
@@ -1125,21 +1159,26 @@ function openPiece(path) {
   ]);
 }
 
-function pieceCard(p, showPath) {
-  const tag = tagOf(p.path);
+function pieceRow(p, showPath, max) {   // uma linha compacta: nome, um chip (+N), barrinha de stock e − quantidade +
   const flash = S.highlight && S.highlight === pkey(p.path);
   const node = getNode(p.path.slice(0, -1));
   const qty = node ? (Number(node[p.key]) || 0) : p.qty;
+  const chips = pieceChipList(p), open = () => openPiece(p.path);
   const nameEl = showPath
     ? h('button', {class: 'p-name', type: 'button', onclick: () => goToPiece(p)}, display(p.key))
-    : h('button', {class: 'p-name', type: 'button', onclick: () => openPiece(p.path)}, display(p.key));
-  return h('div', {class: 'card piece' + (flash ? ' flash' : ''), 'data-pk': pkey(p.path), style: '--pc:' + colorFor(p.path[0])},
-    h('div', {class: 'p-info'}, nameEl, tag ? chip(tag) : null, pieceChips(p), showPath ? h('div', {class: 'p-path'}, p.path.slice(0, -1).join(' › ')) : null),
-    h('div', {class: 'ctrl'},
+    : h('button', {class: 'p-name', type: 'button', onclick: open}, display(p.key));
+  const sub = chips.length ? h('div', {class: 'psub'}, chips[0], chips.length > 1 ? h('button', {class: 'more', type: 'button', 'aria-label': 'Ver tudo', onclick: open}, '+' + (chips.length - 1)) : null) : null;
+  return h('div', {class: 'prow' + (flash ? ' flash' : ''), 'data-pk': pkey(p.path), style: '--pc:' + colorFor(p.path[0])},
+    h('span', {class: 'pdot'}),
+    h('div', {class: 'pinfo'}, nameEl, showPath ? h('div', {class: 'p-path'}, p.path.slice(0, -1).join(' › ')) : null, sub,
+      h('div', {class: 'mbar'}, h('i', {style: `width:${qty > 0 ? Math.max(3, Math.round(qty / Math.max(1, max) * 100)) : 0}%`}))),
+    h('div', {class: 'step'},
       h('button', {class: 'minus', type: 'button', 'aria-label': 'Retirar de ' + display(p.key), onclick: () => openQty(p.path, 'sub')}, '−'),
       h('button', {class: 'qty' + (qty === 0 ? ' zero' : ''), type: 'button', 'aria-label': `Quantidade ${qty}. Definir`, onclick: () => openQty(p.path, 'set')}, String(qty)),
       h('button', {class: 'plus', type: 'button', 'aria-label': 'Adicionar a ' + display(p.key), onclick: () => openQty(p.path, 'add')}, '+')));
 }
+const pieceRows = (items, showPath) => { const max = Math.max(1, ...items.map(p => p.qty)); return items.map(p => pieceRow(p, showPath, max)); };
+const pieceList = (items, showPath) => h('div', {class: 'plist'}, ...pieceRows(items, showPath));
 function folderCard(path) {
   const st = stats(getNode(path));
   return h('button', {class: 'card folder', type: 'button', onclick: () => { S.path = path; S.view = 'folders'; render(); window.scrollTo(0, 0); }},
@@ -1206,23 +1245,34 @@ function viewFolders() {
   const folders = Object.keys(node).filter(k => isFolder(node[k])).sort(cmp);
   const pieces = Object.keys(node).filter(k => !isFolder(node[k]))
     .sort((a, b) => cmp(display(a), display(b)) || cmp(tagOf(S.path.concat(a)) || '', tagOf(S.path.concat(b)) || ''));
-  const sst = stats(node);
-  const sstat = (label, value, bad) => h('div', {class: 'stat3'}, h('span', null, label), h('b', {style: bad ? 'color:var(--danger)' : ''}, value));
-  const els = [crumbs, h('h2', {class: 'ptitle'}, S.path[S.path.length - 1]),
-    h('div', {class: 'stats3'}, sstat('Peças', fmt(sst.pieces)), sstat('Unidades', fmt(sst.units)), sstat('Sem stock', fmt(sst.zero), sst.zero > 0)),
-    h('button', {class: 'btn green block', type: 'button', style: 'white-space:nowrap', onclick: () => flowNewPiece(S.path.slice())}, svg(ICON.plus, 20), 'Adicionar peça'),
-    h('div', {class: 'row', style: 'flex-wrap:nowrap'},
-      h('button', {class: 'btn gray', type: 'button', style: 'flex:1 1 auto;white-space:nowrap', onclick: () => flowNewFolder(S.path.slice())}, svg(ICON.plus, 18), 'Subpasta'),
-      h('button', {class: 'btn gray', type: 'button', style: 'flex:0 0 56px;padding:0', 'aria-label': 'Mais ações da pasta', onclick: () => openFolderMenu(S.path.slice())}, svg(ICON.dots, 22)))];
-  if (folders.length) els.push(...folders.map(k => folderCard(S.path.concat(k))));
+  const sst = stats(node), sb = n => h('b', null, fmt(n));
+  const pf = (S.pf && S.pf.path === pkey(S.path)) ? S.pf : (S.pf = {path: pkey(S.path), sort: 'nome', zero: false});
+  const els = [crumbs,
+    h('div', {class: 'hdr'}, h('h2', {class: 'ptitle'}, S.path[S.path.length - 1]),
+      h('button', {class: 'icon-btn', type: 'button', 'aria-label': 'Mais ações da pasta', onclick: () => openFolderMenu(S.path.slice())}, svg(ICON.dots, 22))),
+    h('div', {class: 'statline'}, sb(sst.pieces), ` peça${sst.pieces === 1 ? '' : 's'}`, h('i', null, '·'), sb(sst.units), ' un.', h('i', null, '·'), h('span', {class: sst.zero ? 'bad' : ''}, sb(sst.zero), ' sem stock'))];
+  if (folders.length && pieces.length) els.push(h('div', {class: 'subchips'}, ...folders.map(k => h('button', {class: 'crumb', type: 'button',
+    onclick: () => { S.path = S.path.concat(k); render(); window.scrollTo(0, 0); }}, h('span', null, k), h('small', null, String(stats(node[k]).pieces))))));
+  else if (folders.length) els.push(...folders.map(k => folderCard(S.path.concat(k))));
   if (pieces.length) {
-    if (folders.length) els.push(h('div', {class: 'h2'}, 'Peças'));
-    els.push(...pieces.map(k => pieceCard({path: S.path.concat(k), key: k, qty: Number(node[k]) || 0}, false)));
+    const box = h('div', {class: 'plist'});
+    const fill = () => {
+      let items = pieces.map(k => ({path: S.path.concat(k), key: k, qty: Number(node[k]) || 0}));
+      if (pf.zero) items = items.filter(x => x.qty === 0);
+      if (pf.sort === 'qtd_up') items.sort((a, b) => a.qty - b.qty || cmp(display(a.key), display(b.key)));
+      box.replaceChildren(...(items.length ? pieceRows(items, false) : [h('div', {class: 'hint', style: 'padding:14px 0'}, 'Nenhuma peça com este filtro.')]));
+    };
+    if (pieces.length >= 4) {   // ordenar e filtrar dentro da pasta (muda no sítio)
+      const bn = h('button', {class: 'crumb', type: 'button'}, 'Nome'), bq = h('button', {class: 'crumb', type: 'button'}, 'Menos stock'), bz = h('button', {class: 'crumb', type: 'button'}, 'Só sem stock');
+      const paint = () => { bn.classList.toggle('cur', pf.sort === 'nome'); bq.classList.toggle('cur', pf.sort === 'qtd_up'); bz.classList.toggle('cur', pf.zero); };
+      bn.onclick = () => { pf.sort = 'nome'; paint(); fill(); }; bq.onclick = () => { pf.sort = 'qtd_up'; paint(); fill(); }; bz.onclick = () => { pf.zero = !pf.zero; paint(); fill(); };
+      paint(); els.push(h('div', {class: 'fl'}, bn, bq, bz));
+    }
+    fill(); els.push(box);
   }
-  if (!folders.length && !pieces.length) els.push(h('div', {class: 'empty'}, S.path.length ? 'Esta pasta está vazia.' : 'O inventário está vazio.'));
+  if (!folders.length && !pieces.length) els.push(h('div', {class: 'empty'}, 'Esta pasta está vazia. Toque no + para adicionar uma peça, ou em ⋯ para criar uma subpasta.'));
   main.replaceChildren(...els);
 }
-
 function compRows(name, mult, depth, stack) {
   const out = [], pad = `padding-left:${depth * 16}px`;
   for (const c of S.kits[name].componentes) {
@@ -1442,7 +1492,7 @@ function viewSearch() {
     els.push(...kts.slice(0, 40).map(n => { const st = kitStatusInfo(n);
       return h('button', {class: 'card kitc', type: 'button', onclick: () => openKit(n)}, h('div', {class: 'l1'}, h('span', {class: 'nm'}, n), h('span', {class: 'st ' + st.cls}, st.txt))); })); }
   if (fol.length) { els.push(h('div', {class: 'h2'}, 'Pastas')); els.push(...fol.slice(0, 40).map(f => folderCard(f.path))); }
-  if (pcs.length) { els.push(h('div', {class: 'h2'}, 'Peças')); els.push(...pcs.slice(0, 120).map(p => pieceCard(p, true)));
+  if (pcs.length) { els.push(h('div', {class: 'h2'}, 'Peças')); els.push(pieceList(pcs.slice(0, 120), true));
     if (pcs.length > 120) els.push(h('div', {class: 'hint'}, `A mostrar 120 de ${pcs.length}. Refine a pesquisa.`)); }
   main.replaceChildren(...els);
 }
@@ -1456,7 +1506,7 @@ function viewTags() {
       h('div', {class: 'row', style: 'align-items:center;justify-content:space-between;flex-wrap:nowrap'},
         h('button', {class: 'crumb', type: 'button', onclick: () => { S.tagFilter = null; render(); }}, '‹ Todas as tags'), chip(S.tagFilter)),
       h('div', {class: 'hint'}, `${list.length} peça${list.length === 1 ? '' : 's'}`),
-      ...list.map(p => pieceCard(p, true)));
+      pieceList(list, true));
     return;
   }
   if (!lib.length) { main.replaceChildren(h('div', {class: 'empty'}, 'Ainda não há tags. Importe o tags.json do PC.')); return; }
@@ -1758,7 +1808,7 @@ function filterView(kind) {
         h('button', {class: 'crumb', type: 'button', onclick: () => { if (isLab) S.labelFilter = null; else S.lotFilter = null; render(); window.scrollTo(0, 0); }}, isLab ? '‹ Todas as etiquetas' : '‹ Todos os lotes'),
         h('span', {class: 'chip ' + (isLab ? 'lab' : 'lot')}, isLab ? cur : 'Lote ' + cur)),
       h('div', {class: 'hint'}, `${list.length} peça${list.length === 1 ? '' : 's'}`),
-      ...list.map(p => pieceCard(p, true)));
+      pieceList(list, true));
     return;
   }
   const g = drawerGroups(), counts = isLab ? g.labels : g.lots;
@@ -1991,6 +2041,7 @@ function openFolderMenu(path) {
   const item = (icon, label, fn, danger) => h('button', {class: 'menu-item', type: 'button', style: danger ? 'color:var(--danger)' : '', onclick: () => { close(); fn(); }}, svg(ICON[icon]), h('span', null, label));
   const close = openSheet([
     h('div', null, h('h3', null, path[path.length - 1]), h('div', {class: 'sub'}, path.slice(0, -1).join(' › ') || 'Pasta principal')),
+    item('plus', 'Nova subpasta', () => flowNewFolder(path)),
     item('edit', 'Renomear', () => flowRename(path, true)),
     item('move', 'Mover', () => flowMove(path, true, false)),
     item('copy', 'Copiar', () => flowMove(path, true, true)),
@@ -2247,6 +2298,7 @@ function importadoHa() {
 function render(keepScroll) {
   const y = window.scrollY;
   enterAnim = !keepScroll;
+  document.getElementById('fab').hidden = !(S.inv && S.view === 'folders' && S.path.length > 0 && !S.query.trim() && !S.edit);
   document.body.classList.toggle('onb', !S.inv);
   renderTabs();
   if (drawerEl) renderDrawer();
@@ -2277,6 +2329,7 @@ document.getElementById('q').addEventListener('input', e => {
 });
 document.getElementById('q-clear').addEventListener('click', () => { clearSearch(); document.getElementById('q').focus(); });
 document.getElementById('btn-menu').addEventListener('click', openMenu);
+document.getElementById('fab').addEventListener('click', () => flowNewPiece(S.path.slice()));
 document.getElementById('file').addEventListener('change', e => {
   const files = [...e.target.files]; e.target.value = '';
   if (files.length) importFiles(files);
