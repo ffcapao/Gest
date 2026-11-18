@@ -1580,14 +1580,9 @@ function drawerGroups() {   // {tags, labels, lots}: nome → nº de peças
   }
   return {tags, labels, lots};
 }
-function renderDrawer() {
-  if (!drawerEl) return;
-  if (S.sb !== 'folders' && !modOn(S.sb)) S.sb = 'folders';
-  const P = drawerEl.panel, oldList = P.querySelector('.dlist'), keep = oldList ? oldList.scrollTop : 0;
+function drawerListNodes() {   // as linhas da lista do menu lateral para o separador atual
   const q = S.query.trim();
-  const navItem = (icon, label, on, fn, badge) => h('button', {class: 'dn' + (on ? ' on' : ''), type: 'button', onclick: fn},
-    svg(ICON[icon], 20), h('span', {style: 'flex:1'}, label), badge ? h('span', {class: 'dpill'}, badge) : null);
-  const list = h('div', {class: 'dlist'});
+  const list = h('div');
   if (!S.inv) list.append(h('div', {class: 'hint', style: 'padding:14px 8px'}, 'Importe o inventário para ver as pastas.'));
   else if (S.sb === 'folders') { const rows = []; drawerTree(S.inv, [], 0, rows); list.append(...(rows.length ? rows : [h('div', {class: 'hint', style: 'padding:14px 8px'}, 'Ainda não há pastas.')])); }
   else {
@@ -1603,9 +1598,31 @@ function renderDrawer() {
       h('button', {class: 'dnm', type: 'button', onclick: () => navTo({view: cfg.view, [cfg.key]: n})}, S.sb === 'lots' ? 'Lote ' + n : n),
       h('span', {class: 'ct'}, fmt(cfg.counts[n] || 0))));
   }
+  return [...list.childNodes];
+}
+const SB_ORDER = ['folders', 'tags', 'labels', 'lots'];
+function switchSb(k) {   // muda de separador no sítio: o seletor desliza e a lista entra de lado
+  if (!drawerEl || k === S.sb) return;
+  const act = SB_ORDER.filter(x => x === 'folders' || modOn(x)), dir = act.indexOf(k) > act.indexOf(S.sb) ? 1 : -1;
+  S.sb = k;
+  const P = drawerEl.panel, seg = P.querySelector('.seg'), list = P.querySelector('.dlist');
+  for (const b of seg.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.k === k));
+  segSync(seg);
+  list.replaceChildren(...drawerListNodes()); list.scrollTop = 0;
+  if (!document.documentElement.classList.contains('no-anim') && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) && list.animate)
+    list.animate([{opacity: 0, transform: `translateX(${dir * 22}px)`}, {opacity: 1, transform: 'none'}], {duration: 220, easing: 'cubic-bezier(.2,.8,.2,1)'});
+}
+function renderDrawer() {
+  if (!drawerEl) return;
+  if (S.sb !== 'folders' && !modOn(S.sb)) S.sb = 'folders';
+  const P = drawerEl.panel, oldList = P.querySelector('.dlist'), keep = oldList ? oldList.scrollTop : 0;
+  const q = S.query.trim();
+  const navItem = (icon, label, on, fn, badge) => h('button', {class: 'dn' + (on ? ' on' : ''), type: 'button', onclick: fn},
+    svg(ICON[icon], 20), h('span', {style: 'flex:1'}, label), badge ? h('span', {class: 'dpill'}, badge) : null);
+  const list = h('div', {class: 'dlist'}, ...drawerListNodes());
   const seg = h('div', {class: 'seg', role: 'group', 'aria-label': 'Ver por', style: 'margin:6px 14px 8px'},
     ...[['folders', 'Pastas'], ['tags', 'Tags'], ['labels', 'Etiquetas'], ['lots', 'Lotes']].filter(([k]) => k === 'folders' || modOn(k)).map(([k, l]) =>
-      h('button', {type: 'button', style: 'font-size:13px', 'aria-pressed': String(S.sb === k), onclick: () => { S.sb = k; renderDrawer(); }}, l)));
+      h('button', {type: 'button', 'data-k': k, style: 'font-size:13px', 'aria-pressed': String(S.sb === k), onclick: () => switchSb(k)}, l)));
   segSync(seg);
   const n = pending();
   P.replaceChildren(
