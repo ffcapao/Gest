@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#18181B">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0b0c">
+<meta name="color-scheme" content="dark light">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Gest">
@@ -13,172 +13,350 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Gest</title>
 <style>
+/* Gest — estilo (tokens e componentes). Nenhuma cor fixa nos componentes: tudo via var(--…). */
 :root{
-  --bg:#2B2B2B; --panel:#18181B; --card:#262121; --card-hover:#2e2828; --folder:#27272A; --line:#3F3F46;
-  --text:#E4E4E7; --text-strong:#FFFFFF; --muted:#A1A1AA; --dim:#71717A;
-  --blue:#1f538d; --blue-hi:#60A5FA; --green:#34D399; --green-bg:#064E3B; --btn-green:#27AE60;
-  --red:#F87171; --red-bg:#450A0A; --btn-minus:#8d1f1f; --amber:#FBBF24; --purple:#C084FC; --teal:#0D9488;
-  --radius:12px; --gutter:16px;
+  --bg:#0b0b0c; --surface:#131314; --surface-2:#1c1c1e; --line:#27272a; --text:#f3f3f5; --muted:#8d8d93;
+  --accent:#60a5fa; --accent-2:#60a5fa; --good:#34d399; --danger:#f87171; --amber:#fbbf24; --purple:#c084fc;
+  --c1:#3b82f6; --c2:#2563eb;
+  --grad:linear-gradient(135deg,var(--c1) 0%,var(--c2) 100%);
+  --grad-relief:linear-gradient(135deg,var(--c1) 0%,var(--c2) 100%);
+  --on-grad:#ffffff;
+  --radius:20px; --nav-h:64px; --gutter:20px;
   --safe-b:env(safe-area-inset-bottom,0px);
+  --ease:cubic-bezier(.2,.8,.2,1);
+  /* nomes antigos, usados pelo JavaScript */
+  --green:var(--good); --red:var(--danger); --blue-hi:var(--accent); --text-strong:var(--text); --dim:var(--muted);
+}
+:root[data-mode="light"]{
+  --bg:#f4f5f9; --surface:#ffffff; --surface-2:#eef0f5; --line:#e1e4ec; --text:#12151c; --muted:#6b7385;
+  --good:#10b981; --danger:#ef4444; --amber:#d97706; --purple:#9333ea;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{background:var(--bg)}
-body{margin:0;min-height:100dvh;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;display:flex;flex-direction:column;align-items:center}
+html{background:var(--bg);overscroll-behavior-y:none;scrollbar-width:none}
+html::-webkit-scrollbar,*::-webkit-scrollbar{display:none}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;-webkit-user-select:none;user-select:none;transition:background-color .3s,color .3s}
+input,textarea{-webkit-user-select:text;user-select:text}
+img{-webkit-user-drag:none}
 .app{width:100%;max-width:720px;min-height:100dvh;display:flex;flex-direction:column;position:relative}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
-button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--blue-hi);outline-offset:2px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 [hidden]{display:none!important}
+.no-anim *,.no-anim *::before,.no-anim *::after{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 
 /* topo */
-.top{position:sticky;top:0;z-index:20;background:var(--panel);padding:10px var(--gutter) 10px;border-bottom:1px solid #000;display:grid;gap:10px}
-.top-row{display:flex;align-items:center;gap:10px}
-.brand{font-weight:700;font-size:19px;color:var(--text-strong);letter-spacing:.2px;flex:1;min-width:0}
-.brand small{display:block;font-weight:400;font-size:11.5px;color:var(--muted);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.icon-btn{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:var(--text)}
-.icon-btn:active{background:#333}
+.top{position:sticky;top:0;z-index:20;background:var(--bg);padding:16px var(--gutter) 10px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;transition:background-color .3s}
+.top-row{display:flex;align-items:center;gap:10px;min-width:0}
+.brand{font-weight:800;font-size:28px;letter-spacing:-.02em;color:var(--text);flex:1;min-width:0;line-height:1.1;overflow:hidden}
+.brand small{display:block;font-weight:500;font-size:12.5px;color:var(--muted);letter-spacing:0;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--text);background:var(--surface);border:1px solid var(--line);transition:transform .1s}
+.icon-btn:active{transform:scale(.96)}
 .search{position:relative}
-.search input{width:100%;height:44px;border-radius:10px;border:1px solid var(--line);background:#222226;color:var(--text);padding:0 40px 0 14px;font:inherit}
-.search input::placeholder{color:#8a8a92}
+.search input{width:100%;height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 46px 0 16px;font:inherit;outline:none;transition:border-color .2s,background-color .3s}
+.search input:focus{border-color:var(--accent)}
+.search input::placeholder{color:var(--muted)}
 .search input::-webkit-search-cancel-button,.search input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
-.search .clear{position:absolute;right:2px;top:0;width:44px;height:44px;display:grid;place-items:center;color:var(--muted)}
+.search .clear{position:absolute;right:2px;top:2px;width:44px;height:44px;display:grid;place-items:center;color:var(--muted)}
 
 /* conteúdo */
-main{flex:1;padding:12px var(--gutter) calc(88px + var(--safe-b));display:grid;gap:8px;align-content:start}
-.crumbs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;align-items:center}
-.crumbs::-webkit-scrollbar{display:none}
-.crumb{flex:none;padding:6px 11px;border-radius:999px;background:#333338;color:var(--text);font-size:13.5px;white-space:nowrap}
-.crumb.cur{background:var(--blue);color:#fff;font-weight:600}
-.sep{color:var(--dim);flex:none}
-.card{background:var(--card);border-radius:var(--radius);padding:12px 12px 12px 14px}
-.folder{background:var(--folder);display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:56px}
-.folder:active{background:#34343a}
-.folder .f-name{flex:1;min-width:0;color:var(--blue-hi);font-weight:650;overflow-wrap:anywhere}
+main{flex:1;min-width:0;padding:8px var(--gutter) calc(var(--nav-h) + 32px + var(--safe-b));display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-content:start}
+main.enter>*{animation:rise .25s ease both}
+main.enter>*:nth-child(2){animation-delay:.03s}main.enter>*:nth-child(3){animation-delay:.06s}main.enter>*:nth-child(4){animation-delay:.09s}
+main.enter>*:nth-child(5){animation-delay:.12s}main.enter>*:nth-child(n+6){animation-delay:.15s}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.crumbs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;align-items:center}
+.crumb{flex:none;padding:8px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--text);font-size:13.5px;font-weight:600;white-space:nowrap}
+.crumb.cur{background:color-mix(in srgb,var(--accent) 14%,var(--surface));border-color:var(--accent);color:var(--text)}
+.sep{color:var(--muted);flex:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 14px 14px 16px;transition:background-color .3s,border-color .3s}
+.tile{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:#fff;flex:none}
+.folder{display:flex;align-items:center;gap:14px;width:100%;text-align:left;min-height:68px}
+.folder:active{transform:scale(.99)}
+.folder .f-name{flex:1;min-width:0;color:var(--text);font-weight:700;overflow-wrap:anywhere}
 .folder .f-meta{font-size:12.5px;color:var(--muted);white-space:nowrap}
-.folder svg{flex:none;color:var(--dim)}
-.piece{display:flex;align-items:center;gap:10px}
+.folder .f-txt{flex:1;min-width:0;display:grid;gap:2px}
+.folder .f-txt .f-meta{white-space:normal}
+.folder>svg{flex:none;color:var(--muted)}
+.piece{display:flex;align-items:center;gap:10px;box-shadow:inset 4px 0 0 var(--pc,transparent)}
 .piece.flash{animation:flash 1.8s ease-out}
-@keyframes flash{0%,35%{background:#0F766E}100%{background:var(--card)}}
-.p-info{flex:1;min-width:0;display:grid;gap:5px;justify-items:start}
-.p-name{font-weight:650;color:#F4F4F5;text-align:left;overflow-wrap:anywhere;line-height:1.25}
+@keyframes flash{0%,35%{background:color-mix(in srgb,var(--accent) 24%,var(--surface))}100%{background:var(--surface)}}
+.p-info{flex:1;min-width:0;display:grid;gap:6px;justify-items:start}
+.p-name{font-weight:700;color:var(--text);text-align:left;overflow-wrap:anywhere;line-height:1.25}
 .p-path{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
-.chip{display:inline-block;font-size:12px;font-weight:650;padding:2px 9px;border-radius:999px}
-.ctrl{display:flex;align-items:center;gap:6px;flex:none}
-.ctrl button{width:44px;height:44px;border-radius:10px;font-size:22px;font-weight:700;color:#fff;display:grid;place-items:center}
-.ctrl .minus{background:var(--btn-minus)} .ctrl .plus{background:var(--blue)}
-.ctrl .minus:active{background:#AD2424} .ctrl .plus:active{background:#246BAD}
-.ctrl .qty{width:auto;min-width:54px;padding:0 8px;font-size:17px;background:var(--green-bg);color:var(--green)}
-.ctrl .qty.zero{background:var(--red-bg);color:var(--red)}
-.hint{color:var(--muted);font-size:13.5px;padding:2px 2px 6px}
-.h2{font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:10px 2px 2px}
-.empty{text-align:center;color:var(--muted);padding:36px 10px}
-.welcome{background:var(--folder);border-radius:16px;padding:22px 18px;display:grid;gap:14px;margin-top:6px}
-.welcome h1{margin:0;font-size:21px;color:var(--text-strong)}
-.welcome p{margin:0;color:var(--text);font-size:15px}
-.welcome ol{margin:0;padding-left:20px;color:var(--text);font-size:15px;display:grid;gap:4px}
-
-.btn{min-height:48px;border-radius:10px;padding:0 16px;font-weight:650;color:#fff;background:var(--blue);display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center}
-.btn:active{filter:brightness(1.15)}
-.btn.green{background:var(--btn-green)} .btn.gray{background:#52525B} .btn.red{background:var(--btn-minus)} .btn.teal{background:var(--teal)}
-.btn[disabled]{background:#1F1F23;color:var(--dim);cursor:not-allowed}
-.btn.block{width:100%}
-.row{display:flex;gap:8px;flex-wrap:wrap}.row>.btn{flex:1 1 150px}
-
-/* lotes e kits */
-.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;min-width:0;max-width:100%}
+.p-info>*{max-width:100%}
+.chip{display:inline-block;font-size:12px;font-weight:650;padding:2px 10px;border-radius:999px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 button.chip{cursor:pointer}
-.chip.lot{background:none;border:1px solid var(--teal);color:#5EEAD4;font-weight:600}
-.chip.kit{background:none;border:1px solid #7C3AED;color:#C4B5FD;font-weight:600}
-.kitc{display:grid;gap:4px;width:100%;text-align:left;background:var(--folder);min-height:56px}
-.kitc .l1{display:flex;justify-content:space-between;gap:10px;align-items:center}
-.kitc .nm{font-weight:650;color:var(--blue-hi);overflow-wrap:anywhere}
-.kitc .meta{font-size:12.5px;color:var(--muted)}
-.st{font-size:12.5px;font-weight:700;white-space:nowrap}.st.ok{color:var(--green)}.st.bad{color:var(--red)}.st.warn{color:var(--amber)}
-.comp{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #3a3a40}
-.comp .q{min-width:40px;font-weight:700;color:var(--amber);white-space:nowrap}
-.comp .tx{flex:1;min-width:0;display:grid;gap:2px;text-align:left}
-.comp .tx .nm{font-weight:600;overflow-wrap:anywhere}
-.comp .tx small{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
-.comp .have{font-size:12.5px;font-weight:700;white-space:nowrap}
-.sel{width:100%;height:46px;border-radius:10px;border:1px solid var(--line);background:#18181B;color:var(--text);padding:0 10px;font:inherit}
-.field.sm{height:48px;font:16px system-ui;text-align:left}
-.lbl{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700}
-.xrow{display:grid;gap:6px;padding:9px 0;border-top:1px solid #3a3a40}
-.xrow:first-child{border-top:0}
-.opt{width:100%;min-height:52px;border-radius:10px;background:#2e2e33;padding:8px 14px;text-align:left;display:grid;gap:1px;font-weight:650}
-.opt small{color:var(--muted);font-weight:400;font-size:12.5px}
-.opt:active{background:#3F3F46}
-.panel{background:var(--folder);border-radius:var(--radius);padding:4px 14px}
-.lotline{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #3a3a40}
-.lotline:first-child,.comp:first-child{border-top:0}
+.chip.lot{background:none;border:1px solid color-mix(in srgb,var(--good) 55%,transparent);color:var(--good);font-weight:600}
+.chip.kit{background:none;border:1px solid color-mix(in srgb,var(--accent-2) 60%,transparent);color:var(--accent);font-weight:600}
+.ctrl{display:flex;align-items:center;gap:6px;flex:none}
+.ctrl button{width:44px;height:44px;border-radius:14px;font-size:22px;font-weight:700;display:grid;place-items:center;transition:transform .1s}
+.ctrl button:active{transform:scale(.94)}
+.ctrl .minus{background:var(--surface-2);color:var(--danger)}
+.ctrl .plus{background:var(--surface-2);color:var(--accent)}
+.ctrl .qty{width:auto;min-width:54px;padding:0 8px;font-size:17px;background:color-mix(in srgb,var(--good) 14%,var(--surface));color:var(--good);font-variant-numeric:tabular-nums}
+.ctrl .qty.zero{background:color-mix(in srgb,var(--danger) 14%,var(--surface));color:var(--danger)}
+.hint{color:var(--muted);font-size:13.5px;padding:0 2px}
+.h2{font-size:13px;color:var(--muted);font-weight:600;margin:8px 2px -4px}
+.lbl{font-size:13px;color:var(--muted);font-weight:600}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+.welcome{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:24px 20px;display:grid;gap:16px}
+.welcome h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.welcome p{margin:0;font-size:15px}
+.welcome ol{margin:0;padding-left:20px;font-size:15px;display:grid;gap:6px}
+
+/* botões */
+.btn{min-height:52px;border-radius:16px;padding:0 18px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;
+  background:var(--surface);border:1px solid var(--line);color:var(--text);transition:transform .1s,opacity .2s}
+.btn:active{transform:scale(.98)}
+.btn.green,.btn.teal{background:var(--grad);color:var(--on-grad);border-color:transparent}   /* o único botão principal do ecrã */
+.btn.gray{background:var(--surface);border:1px solid var(--line);color:var(--text)}
+.btn.red{background:transparent;border-color:transparent;color:var(--danger)}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.btn.block{width:100%}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row>.btn{flex:1 1 140px}
 
 /* resumo */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.stat{background:var(--panel);border-radius:var(--radius);padding:10px 12px}
-.stat b{display:block;font-size:22px;line-height:1.15}
-.stat span{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700}
-.bar{height:6px;border-radius:3px;background:#3a3a40;margin-top:7px;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--blue-hi);border-radius:3px}
+.big-total{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px 22px;display:grid;gap:2px}
+.big-total span{font-size:13px;font-weight:600;color:var(--muted)}
+.big-total b{font-size:40px;letter-spacing:-.02em;line-height:1.15;font-variant-numeric:tabular-nums}
+.big-total small{font-size:13px;color:var(--muted)}
+.reminder{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;font-size:14px;
+  background:color-mix(in srgb,var(--accent-2) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--accent-2) 40%,transparent)}
+.reminder svg{flex:none;color:var(--accent)}
+.bar{height:6px;border-radius:3px;background:var(--surface-2);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--grad);border-radius:3px}
 .mf{display:grid;gap:2px;width:100%;text-align:left}
 .mf .top-line{display:flex;justify-content:space-between;gap:10px}
-.mf .nm{font-weight:650;color:var(--blue-hi)}.mf .un{color:var(--amber);font-weight:700;white-space:nowrap}
+.mf .nm{font-weight:700}.mf .un{color:var(--accent);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* alterações */
 .chg{display:grid;gap:4px}
 .chg .l1{display:flex;gap:8px;align-items:center;justify-content:space-between}
-.chg .nm{font-weight:650;overflow-wrap:anywhere}
+.chg .nm{font-weight:700;overflow-wrap:anywhere}
 .chg .tm{font-size:12px;color:var(--muted);white-space:nowrap}
 .chg .dt{font-size:13px;color:var(--muted)}
 .chg .note{font-size:13px;color:var(--amber);font-style:italic}
-.delta{font-weight:700;font-size:13px;padding:2px 9px;border-radius:6px;white-space:nowrap}
-.delta.up{background:var(--green-bg);color:var(--green)}.delta.down{background:var(--red-bg);color:var(--red)}
-.pill{background:var(--amber);color:#1c1917;font-weight:800;font-size:11px;min-width:18px;height:18px;border-radius:9px;display:inline-grid;place-items:center;padding:0 5px;position:absolute;top:4px;right:calc(50% - 22px)}
+.delta{font-weight:700;font-size:13px;padding:3px 10px;border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.delta.up{background:color-mix(in srgb,var(--good) 16%,var(--surface));color:var(--good)}
+.delta.down{background:color-mix(in srgb,var(--danger) 16%,var(--surface));color:var(--danger)}
+.pill{background:var(--accent);color:var(--bg);font-weight:800;font-size:11px;min-width:18px;height:18px;border-radius:9px;display:inline-grid;place-items:center;padding:0 5px;position:absolute;top:8px;right:calc(50% - 24px)}
 
 /* navegação inferior */
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--panel);border-top:1px solid #000;display:flex;justify-content:center;padding-bottom:var(--safe-b)}
-nav.tabs .in{width:100%;max-width:720px;display:grid;grid-template-columns:repeat(5,1fr)}
-.tab{height:62px;display:grid;justify-items:center;align-content:center;gap:2px;color:var(--dim);font-size:11px;font-weight:650;position:relative}
-.tab[aria-current="page"]{color:var(--blue-hi)}
-.tab:active{background:#222}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:color-mix(in srgb,var(--surface) 97%,transparent);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:var(--safe-b);transition:background-color .3s}
+nav.tabs .in{width:100%;max-width:720px;display:flex;position:relative}
+.tab{flex:1}
+#tabs{display:contents}
+.tab{height:var(--nav-h);display:grid;justify-items:center;align-content:center;gap:3px;color:var(--muted);font-size:11px;font-weight:600;position:relative;transition:color .2s}
+.tab[aria-current="page"]{color:var(--accent)}
+.ind{position:absolute;top:0;left:0;width:25%;height:3px;display:grid;place-items:start center;transform:translateX(calc(var(--i,0)*100%));transition:transform .3s var(--ease),opacity .2s;pointer-events:none}
+.ind::after{content:"";width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
 
-/* folhas (diálogos) */
+/* folhas e diálogos */
 #sheets{position:fixed;inset:0;z-index:50;pointer-events:none}
-.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);pointer-events:auto;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
-.sheet{width:100%;max-width:560px;background:#222226;border-radius:18px 18px 0 0;padding:18px var(--gutter) calc(18px + var(--safe-b));display:grid;gap:14px;max-height:92dvh;overflow:auto;animation:up .18s ease-out}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);pointer-events:auto;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+.backdrop.dlg{align-items:center;padding:20px}
+.sheet{width:100%;max-width:480px;background:var(--bg);border-radius:28px 28px 0 0;padding:12px var(--gutter) calc(24px + var(--safe-b));display:grid;gap:16px;max-height:92dvh;overflow:auto;animation:up .28s var(--ease)}
+.dlg .sheet{width:min(340px,100%);background:var(--surface);border-radius:26px;padding:26px 22px 20px;text-align:center;box-shadow:0 24px 60px -12px rgba(0,0,0,.55);animation:pop .38s cubic-bezier(.2,1.3,.4,1)}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto -4px}
 @keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){*{animation:none!important}}
-.sheet h3{margin:0;font-size:18px;color:var(--text-strong);overflow-wrap:anywhere}
-.sheet p{margin:0;color:var(--text);font-size:15px}
+.sheet h3{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em;overflow-wrap:anywhere}
+.sheet p{margin:0;font-size:15px}
 .sheet .sub{color:var(--muted);font-size:13.5px}
-.seg{display:grid;grid-template-columns:repeat(3,1fr);background:#18181B;border-radius:10px;padding:3px;gap:3px}
-.seg button{height:42px;border-radius:8px;font-weight:650;color:var(--muted)}
-.seg button[aria-pressed="true"]{background:var(--blue);color:#fff}
-.seg button[aria-pressed="true"].m-sub{background:var(--btn-minus)}
-.seg button[aria-pressed="true"].m-add{background:var(--blue)}
-.seg button[aria-pressed="true"].m-set{background:#52525B}
-.field{width:100%;height:56px;border-radius:10px;border:1px solid var(--line);background:#18181B;color:var(--text-strong);font:700 26px system-ui;padding:0 14px;text-align:center}
-textarea.field{height:110px;padding:12px 14px;font:16px/1.4 system-ui;text-align:left;resize:vertical}
+.seg{display:grid;grid-template-columns:repeat(var(--n,2),1fr);background:var(--surface-2);padding:4px;border-radius:14px;position:relative}
+.seg::before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/var(--n,2));border-radius:11px;background:var(--surface);
+  box-shadow:0 2px 8px rgba(0,0,0,.2);transform:translateX(calc(var(--i,0)*100%));transition:transform .25s var(--ease)}
+.seg button{position:relative;padding:11px 4px;border-radius:11px;font-weight:600;color:var(--muted);transition:color .2s}
+.seg button[aria-pressed="true"]{color:var(--text)}
+.field{width:100%;height:60px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:800 28px system-ui;padding:0 16px;text-align:center;outline:none;transition:border-color .2s;font-variant-numeric:tabular-nums}
+.field:focus{border-color:var(--accent)}
+.dlg .field,.sheet .field{-webkit-user-select:text;user-select:text}
+textarea.field{height:110px;padding:14px 16px;font:16px/1.4 system-ui;text-align:left;resize:vertical}
+.field.sm{height:52px;font:16px system-ui;text-align:left}
 .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.quick button{height:44px;border-radius:10px;background:#3F3F46;font-weight:700}
-.quick button:active{background:#52525B}
-.preview{text-align:center;font-size:17px;color:var(--text)}
-.preview b{color:var(--amber)}
+.quick button{height:44px;border-radius:14px;background:var(--surface-2);font-weight:700;transition:transform .1s}
+.quick button:active{transform:scale(.96)}
+.preview{text-align:center;font-size:17px}
+.preview b{color:var(--accent)}
 .preview.warn{color:var(--amber);font-size:14px}
-.menu-item{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;border-radius:10px;padding:0 12px;text-align:left;font-weight:600}
-.menu-item:active{background:#333}
+.menu-item{display:flex;align-items:center;gap:14px;width:100%;min-height:60px;border-radius:16px;padding:0 16px;text-align:left;font-weight:600;background:var(--surface);border:1px solid var(--line)}
+.menu-item:active{transform:scale(.99)}
+.menu-item svg{color:var(--accent);flex:none}
 .menu-item small{display:block;color:var(--muted);font-weight:400;font-size:12.5px}
+.sel{width:100%;height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 12px;font:inherit}
+.xrow{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.xrow:first-child{border-top:0}
+.opt{width:100%;min-height:56px;border-radius:16px;background:var(--surface);border:1px solid var(--line);padding:8px 16px;text-align:left;display:grid;gap:1px;font-weight:600}
+.opt small{color:var(--muted);font-weight:400;font-size:12.5px}
+.opt:active{transform:scale(.99)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:4px 16px}
+.lotline{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.lotline:first-child,.comp:first-child{border-top:0}
 
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + var(--safe-b));z-index:60;background:#3F3F46;color:#fff;border-radius:12px;padding:10px 14px;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.45);font-size:14.5px}
-#toast button{color:var(--amber);font-weight:700;padding:6px 4px}
+/* escolhas e interruptores (Aspeto) */
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.pchoice{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-weight:600;font-size:14px;transition:transform .22s cubic-bezier(.3,1.5,.5,1),border-color .2s,background-color .2s}
+.pchoice.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface));transform:scale(1.03)}
+.dot{width:14px;height:14px;border-radius:50%;flex:none}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:14px;width:100%;text-align:left}
+.switch-row b{display:block;font-weight:700}.switch-row small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.switch{width:48px;height:28px;border-radius:14px;background:var(--surface-2);position:relative;flex:none;transition:.2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:.2s}
+.switch.on{background:var(--accent)}.switch.on::after{background:#fff;transform:translateX(20px)}
+
+/* kits */
+.kitc{display:grid;gap:4px;width:100%;text-align:left;min-height:64px}
+.kitc .l1{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.kitc .nm{font-weight:700;overflow-wrap:anywhere}
+.kitc .meta{font-size:12.5px;color:var(--muted)}
+.st{font-size:12.5px;font-weight:700;white-space:nowrap}.st.ok{color:var(--good)}.st.bad{color:var(--danger)}.st.warn{color:var(--amber)}
+.comp{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.comp .q{min-width:40px;font-weight:700;color:var(--accent);white-space:nowrap;font-variant-numeric:tabular-nums}
+.comp .tx{flex:1;min-width:0;display:grid;gap:2px;text-align:left}
+.comp .tx .nm{font-weight:600;overflow-wrap:anywhere}
+.comp .tx small{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.comp .have{font-size:12.5px;font-weight:700;white-space:nowrap}
+
+.ptitle{margin:0;font-size:28px;font-weight:800;letter-spacing:-.02em;overflow-wrap:anywhere}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat3{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;display:grid;gap:2px}
+.stat3 span{font-size:13px;color:var(--muted);font-weight:600}
+.stat3 b{font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.chip.lab{background:none;border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);color:var(--amber);font-weight:600}
+.dotbadge{position:absolute;top:8px;right:8px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--surface)}
+.icon-btn{position:relative}
+/* menu lateral */
+.dback{position:absolute;inset:0;background:rgba(0,0,0,.55);pointer-events:auto;opacity:0;transition:opacity .28s}
+.dback.open{opacity:1}
+.drawer{position:absolute;top:0;bottom:0;left:0;width:min(86vw,340px);background:var(--bg);border-right:1px solid var(--line);display:flex;flex-direction:column;pointer-events:auto;
+  transform:translateX(-100%);transition:transform .28s var(--ease);padding-top:env(safe-area-inset-top,0px);padding-bottom:var(--safe-b)}
+.drawer.open{transform:none}
+.dhead{display:flex;align-items:center;gap:10px;padding:16px 16px 8px 20px}
+.dnav{display:grid;gap:4px;padding:6px 10px}
+.dn{display:flex;align-items:center;gap:12px;min-height:48px;width:100%;border-radius:14px;padding:0 12px;font-weight:600;text-align:left;transition:background-color .2s}
+.dn svg{color:var(--muted);flex:none}
+.dn.on{background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--accent)}
+.dn.on svg{color:var(--accent)}
+.dn:active{transform:scale(.99)}
+.dpill{background:var(--accent);color:var(--bg);font-weight:800;font-size:11px;min-width:20px;height:20px;border-radius:10px;display:inline-grid;place-items:center;padding:0 6px}
+.dlist{flex:1;overflow:auto;padding:6px 10px 10px;border-top:1px solid var(--line)}
+.drow{display:flex;align-items:center;gap:6px;min-height:44px;border-radius:12px;padding-right:10px}
+.drow.on{background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
+.dchev{width:30px;height:44px;display:grid;place-items:center;flex:none;color:var(--muted);transition:transform .2s}
+.dchev.open{transform:rotate(90deg)}
+.dsq{width:9px;height:9px;border-radius:3px;flex:none}
+.dnm{flex:1;min-width:0;height:44px;text-align:left;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:4px}
+.drow.on .dnm{color:var(--accent)}
+.drow .ct{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.dfoot{border-top:1px solid var(--line);padding:8px 10px;display:grid;gap:2px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick{display:flex;align-items:center;gap:10px;width:100%;min-height:46px;border-radius:12px;padding-right:10px;text-align:left;font-weight:600}
+.pick:active{background:var(--surface-2)}
+.pick[disabled]{opacity:.45;cursor:default}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.acts .btn{min-height:48px;padding:0 10px}
+body.onb .search,body.onb nav.tabs{display:none}
+.onb-box{display:grid;gap:18px;justify-items:center;text-align:center;padding:24px 4px}
+.onb-box h1{margin:0;font-size:34px;font-weight:800;letter-spacing:-.02em}
+.onb-box h2{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.onb-box .lead{margin:0;color:var(--muted);font-size:15px;max-width:320px}
+.logo{width:92px;height:92px;border-radius:28px;display:grid;place-items:center;background:var(--grad);color:var(--on-grad);font-size:40px;font-weight:800;letter-spacing:-.03em}
+.feats{list-style:none;margin:0;padding:0;display:grid;gap:12px;text-align:left}
+.feats li{display:flex;gap:12px;align-items:center;font-size:14.5px;color:var(--muted)}
+.feats li svg{color:var(--accent);flex:none}.feats b{color:var(--text)}
+.modcard{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 16px;border-radius:18px;background:var(--surface);border:1.5px solid var(--line);transition:border-color .2s,background-color .2s}
+.modcard.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.modcard .mi{width:44px;height:44px;border-radius:14px;background:var(--surface-2);display:grid;place-items:center;flex:none;color:var(--text)}
+.modcard b{display:block}.modcard small{color:var(--muted);font-size:12.5px}
+.modcard .ck{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);margin-left:auto;flex:none;display:grid;place-items:center;color:var(--bg)}
+.modcard.on .ck{background:var(--accent);border-color:var(--accent)}
+.period{display:grid;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px}
+.mv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:left}
+.mv span{display:block;font-size:12px;color:var(--muted);font-weight:600}.mv b{font-size:20px;font-variant-numeric:tabular-nums}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 14px + var(--safe-b));z-index:60;background:var(--text);color:var(--bg);border-radius:22px;padding:12px 20px;display:flex;gap:16px;align-items:center;max-width:calc(100% - 32px);font-size:14px;font-weight:700;box-shadow:0 10px 28px -8px rgba(0,0,0,.5);animation:toastin .25s ease}
+@keyframes toastin{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%)}}
+#toast button{color:var(--bg);font-weight:800;text-decoration:underline;padding:6px 2px}
 </style>
+<script>
+/* Tema do Gest: paleta (par de cores do gradiente + realces) e modo (escuro, claro, automático e as duas variações com cor).
+   Corre no <head> para a app abrir já com as cores certas, sem piscar. */
+(function () {
+  'use strict';
+  const PALETTES = {
+    classico:  {n: 'Clássico',  g: ['#3b82f6', '#2563eb'], dark: '#60a5fa', light: '#2563eb', a2: '#60a5fa'},
+    esmeralda: {n: 'Esmeralda', g: ['#34d399', '#6366f1'], dark: '#34d399', light: '#10b981', a2: '#6366f1'},
+    rosa:      {n: 'Rosa',      g: ['#f472b6', '#a78bfa'], dark: '#f472b6', light: '#db2777', a2: '#a78bfa'},
+    aurora:    {n: 'Aurora',    g: ['#5eead4', '#a855f7'], dark: '#a78bfa', light: '#7c3aed', a2: '#a855f7'},
+    cereja:    {n: 'Cereja',    g: ['#fb7185', '#9f1239'], dark: '#fb7185', light: '#e11d48'},
+    floresta:  {n: 'Floresta',  g: ['#bef264', '#15803d'], dark: '#a3e635', light: '#65a30d'},
+    tropical:  {n: 'Tropical',  g: ['#a3e635', '#06b6d4'], dark: '#a3e635', light: '#0d9488', a2: '#06b6d4'},
+    menta:     {n: 'Menta',     g: ['#a7f3d0', '#0ea5e9'], dark: '#5eead4', light: '#0d9488', a2: '#0ea5e9'},
+    lavanda:   {n: 'Lavanda',   g: ['#e9d5ff', '#6366f1'], dark: '#a5b4fc', light: '#6366f1', a2: '#6366f1'},
+    algodao:   {n: 'Algodão',   g: ['#f9a8d4', '#7dd3fc'], dark: '#f9a8d4', light: '#db2777', a2: '#7dd3fc'},
+    grafite:   {n: 'Grafite',   g: ['#f3f4f6', '#6b7280'], dark: '#e5e7eb', light: '#374151'}
+  };
+  const MODES = [['escuro', 'Escuro'], ['claro', 'Claro'], ['auto', 'Automático'], ['auto_escuro', 'Auto escuro'], ['auto_claro', 'Auto claro']];
+  const KEY = 'gkever.ui';   // só gostos visuais; as chaves dos dados não se tocam
+  const DEFAULT = {pal: 'classico', mode: 'escuro', anim: true, mods: {kits: true, lots: true, labels: true, tags: true}};
+
+  const rgb = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+  const hex = c => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+  const mix = (a, b, t) => { const x = rgb(a), y = rgb(b); return hex(x.map((v, i) => v + (y[i] - v) * t)); };   // t = parte de b
+  const lum = h => { const [r, g, b] = rgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
+
+  let prefs = Object.assign({}, DEFAULT);
+  try { const raw = localStorage.getItem(KEY); if (raw) { const p = JSON.parse(raw); if (p && typeof p === 'object') prefs = Object.assign(prefs, p); } } catch (e) {}
+  if (!PALETTES[prefs.pal]) prefs.pal = DEFAULT.pal;
+  if (!MODES.some(m => m[0] === prefs.mode)) prefs.mode = DEFAULT.mode;
+  const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+
+  function apply() {
+    const root = document.documentElement, st = root.style, pal = PALETTES[prefs.pal];
+    const light = prefs.mode === 'claro' || prefs.mode === 'auto_claro' || (prefs.mode === 'auto' && mq && mq.matches);
+    const accent = light ? pal.light : pal.dark;
+    const [c1, c2] = pal.g;
+    root.setAttribute('data-mode', light ? 'light' : 'dark');
+    st.setProperty('--accent', accent);
+    st.setProperty('--accent-2', pal.a2 || (lum(c2) < .2 ? mix(c2, pal.dark, .55) : c2));
+    st.setProperty('--c1', c1); st.setProperty('--c2', c2);
+    st.setProperty('--grad', `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`);
+    const hi = mix(mix(c1, c2, .18), '#ffffff', .10), lo = mix(mix(c1, c2, .82), '#000000', .12);
+    st.setProperty('--grad-relief', `linear-gradient(135deg, ${hi} 0%, ${c1} 34%, ${c2} 68%, ${lo} 100%)`);
+    st.setProperty('--on-grad', lum(mix(c1, c2, .5)) > .42 ? '#04130d' : '#ffffff');
+    const tinted = prefs.mode === 'auto_escuro' || prefs.mode === 'auto_claro';
+    const set = (name, v) => v ? st.setProperty(name, v) : st.removeProperty(name);
+    if (tinted && !light) {   // um toque leve da cor escolhida em vez de cinzento neutro
+      set('--bg', mix('#0b0b0c', accent, .07)); set('--surface', mix('#131314', accent, .09));
+      set('--surface-2', mix('#1c1c1e', accent, .105)); set('--line', mix('#27272a', accent, .12));
+    } else if (tinted && light) {
+      set('--bg', mix('#f5f5f6', accent, .09)); set('--surface', mix('#ffffff', accent, .04));
+      set('--surface-2', mix('#eeeff1', accent, .11)); set('--line', mix('#e2e3e7', accent, .14));
+    } else { ['--bg', '--surface', '--surface-2', '--line'].forEach(n => set(n, null)); }
+    root.classList.toggle('no-anim', !prefs.anim);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim() || '#0b0b0c');
+  }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (e) {} }
+  window.GestTheme = {
+    PALETTES, MODES,
+    get: () => Object.assign({}, prefs),
+    set(patch) { prefs = Object.assign(prefs, patch); persist(); apply(); }
+  };
+  if (mq && mq.addEventListener) mq.addEventListener('change', () => { if (prefs.mode === 'auto') apply(); });
+  apply();
+})();
+</script>
 </head>
 <body>
 <div class="app">
   <header class="top">
     <div class="top-row">
       <div class="brand">Gest<small id="subtitle">Inventário</small></div>
-      <button class="icon-btn" id="btn-menu" aria-label="Menu" type="button">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <button class="icon-btn" id="btn-menu" aria-label="Mais opções" type="button">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5h.01M12 12h.01M12 19h.01"/></svg>
       </button>
     </div>
     <div class="search">
@@ -189,7 +367,7 @@ textarea.field{height:110px;padding:12px 14px;font:16px/1.4 system-ui;text-align
     </div>
   </header>
   <main id="main" aria-live="polite"></main>
-  <nav class="tabs" aria-label="Secções"><div class="in" id="tabs"></div></nav>
+  <nav class="tabs" aria-label="Secções"><div class="in"><div id="tabs"></div><span class="ind" id="ind" hidden></span></div></nav>
 </div>
 <div id="sheets"></div>
 <div id="toast" role="status" hidden></div>
@@ -206,7 +384,7 @@ const PALETTE = [
   {bg:'#0369A1',fg:'#E0F2FE'},{bg:'#6D28D9',fg:'#EDE9FE'},{bg:'#B45309',fg:'#FEF3C7'},{bg:'#047857',fg:'#D1FAE5'},
   {bg:'#BE185D',fg:'#FCE7F3'},{bg:'#4338CA',fg:'#E0E7FF'},{bg:'#0F766E',fg:'#CCFBF1'},{bg:'#9A3412',fg:'#FFEDD5'}
 ];
-const K = {inv:'gkever.inv', base:'gkever.base', tags:'gkever.tags', log:'gkever.log', meta:'gkever.meta', lots:'gkever.lots', kits:'gkever.kits', baselots:'gkever.baselots', basekits:'gkever.basekits'};
+const K = {inv:'gkever.inv', base:'gkever.base', tags:'gkever.tags', log:'gkever.log', meta:'gkever.meta', lots:'gkever.lots', kits:'gkever.kits', baselots:'gkever.baselots', basekits:'gkever.basekits', labels:'gkever.labels', basetags:'gkever.basetags', baselabels:'gkever.baselabels'};
 let storageWarned = false;
 
 function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
@@ -219,13 +397,17 @@ const S = {
   inv: load(K.inv, null), base: load(K.base, null),
   tags: load(K.tags, {library: [], assignments: {}}),
   log: load(K.log, []), meta: load(K.meta, {importedAt: null, exportedLen: 0}),
-  lots: load(K.lots, {}), kits: load(K.kits, {}), baseLots: load(K.baselots, null), baseKits: load(K.basekits, null),
-  view: 'folders', path: [], kit: null, edit: null, tagFilter: null, query: '', highlight: null
+  lots: load(K.lots, {}), kits: load(K.kits, {}), baseLots: load(K.baselots, null), baseKits: load(K.basekits, null), baseTags: load(K.basetags, null), baseLabels: load(K.baselabels, null),
+  view: 'folders', path: [], kit: null, edit: null, tagFilter: null, labelFilter: null, lotFilter: null, sb: 'folders', exp: new Set(),
+  labels: load(K.labels, {library: {}, assignments: {}}), query: '', highlight: null
 };
 const cloneLots = o => JSON.parse(JSON.stringify(o || {}));
 if (!S.baseKits) { S.baseKits = cloneLots(S.kits); save(K.basekits, S.baseKits); }
 if (!S.baseLots) { S.baseLots = cloneLots(S.lots); save(K.baselots, S.baseLots); }  // quem já importou na versão anterior
+if (!S.labels || typeof S.labels !== 'object' || !S.labels.library || !S.labels.assignments) S.labels = {library: {}, assignments: {}};
 if (!S.tags || !Array.isArray(S.tags.library)) S.tags = {library: [], assignments: {}};
+if (!S.baseTags) { S.baseTags = cloneLots(S.tags); save(K.basetags, S.baseTags); }   // para 'Repor ao ficheiro importado'
+if (!S.baseLabels) { S.baseLabels = cloneLots(S.labels); save(K.baselabels, S.baseLabels); }
 // alterações feitas antes desta versão não têm 'id': dão-se-lhes um, para não serem importadas duas vezes
 if (Array.isArray(S.log) && S.log.some(e => e && !e.id)) { S.log.forEach(e => { if (e && !e.id) e.id = newId(); }); save(K.log, S.log); }
 
@@ -366,15 +548,15 @@ function tagOf(path) {
   return t && S.tags.library.includes(t) ? t : null;
 }
 function stats(node) {
-  let folders = 0, pieces = 0, units = 0;
+  let folders = 0, pieces = 0, units = 0, zero = 0;
   const stack = [node];
   while (stack.length) {
     const d = stack.pop();
     for (const v of Object.values(d)) {
-      if (isFolder(v)) { folders++; stack.push(v); } else { pieces++; units += Number(v) || 0; }
+      if (isFolder(v)) { folders++; stack.push(v); } else { pieces++; units += Number(v) || 0; if (!(Number(v) > 0)) zero++; }
     }
   }
-  return {folders, pieces, units};
+  return {folders, pieces, units, zero};
 }
 function allPieces() {
   const out = [];
@@ -422,7 +604,7 @@ function h(tag, props, ...kids) {
   for (const kid of kids.flat()) { if (kid == null || kid === false) continue; el.append(kid.nodeType ? kid : document.createTextNode(String(kid))); }
   return el;
 }
-const svg = (inner, size = 22) => { const w = h('span'); w.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`; return w.firstChild; };
+const svg = (inner, size = 22) => { const w = h('span'); w.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`; return w.firstChild; };
 const ICON = {
   folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   tag: '<path d="M20 13l-7 7-9-9V4h7z"/><circle cx="8" cy="8" r="1.3"/>',
@@ -432,8 +614,32 @@ const ICON = {
   chev: '<path d="M9 6l6 6-6 6"/>',
   upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
   download: '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
+  palette: '<circle cx="13.5" cy="6.5" r=".6"/><circle cx="17.5" cy="10.5" r=".6"/><circle cx="8.5" cy="7.5" r=".6"/><circle cx="6.5" cy="12.5" r=".6"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1-.3-.3-.5-.7-.5-1.1 0-.8.7-1.5 1.5-1.5H16c3.3 0 6-2.7 6-6 0-4.4-4.5-8-10-8z"/>',
+  alert: '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  move: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  dots: '<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  wifioff: '<path d="M2 2l20 20M8.5 16.4a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5.1A15 15 0 0 1 22 8.8M5 12.9a10 10 0 0 1 5.2-2.7M15 11.4a10 10 0 0 1 4 1.5M12 20h.01"/>',
+  sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+  history: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  layers: '<path d="M12 3 2 8l10 5 10-5-10-5z"/><path d="m2 13 10 5 10-5"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/>'
 };
+const TILE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444', '#84cc16'];
+// cada pasta principal tem sempre a mesma cor (conta de caracteres, igual em qualquer arranque)
+function colorFor(name) { let x = 0; for (const ch of String(name || '')) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return TILE_COLORS[x % TILE_COLORS.length]; }
+const fmt = n => Number(n).toLocaleString('pt-PT');
+function segSync(seg) {
+  const btns = [...seg.querySelectorAll('button')];
+  seg.style.setProperty('--n', btns.length);
+  seg.style.setProperty('--i', Math.max(0, btns.findIndex(b => b.getAttribute('aria-pressed') === 'true')));
+}
 function chip(tag) {
   const i = S.tags.library.indexOf(tag);
   const c = PALETTE[(i < 0 ? 0 : i) % PALETTE.length];
@@ -450,11 +656,11 @@ function toast(msg, action) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.hidden = true; }, action ? 7000 : 4200);
 }
-function openSheet(content, onClose) {
+function openSheet(content, onClose, kind) {
   clearTimeout(toastTimer); document.getElementById('toast').hidden = true;
   const host = document.getElementById('sheets');
-  const back = h('div', {class: 'backdrop'});
-  const sheet = h('div', {class: 'sheet', role: 'dialog', 'aria-modal': 'true'}, content);
+  const back = h('div', {class: 'backdrop' + (kind === 'dialog' ? ' dlg' : '')});
+  const sheet = h('div', {class: 'sheet', role: 'dialog', 'aria-modal': 'true'}, kind === 'dialog' ? null : h('div', {class: 'grab'}), content);
   back.append(sheet);
   let closed = false;
   const close = () => { if (closed) return; closed = true; document.removeEventListener('keydown', onKey); back.remove(); if (onClose) onClose(); };
@@ -473,7 +679,7 @@ function ask({title, text, ok = 'Confirmar', danger = false}) {
       h('div', {class: 'row'},
         h('button', {class: 'btn gray', type: 'button', onclick: () => { close(); }}, 'Cancelar'),
         h('button', {class: 'btn ' + (danger ? 'red' : 'green'), type: 'button', onclick: () => { finish(true); close(); }}, ok))
-    ], () => finish(false));
+    ], () => finish(false), 'dialog');
   });
 }
 
@@ -532,10 +738,11 @@ function undo() {
     setLots(sn.path, sn.lots);
   }
   if (lastChange.kits) { S.kits = lastChange.kits; kitIdx = null; save(K.kits, S.kits); }  // receitas
+  if (lastChange.all) restoreAll(lastChange.all);   // pastas e peças criadas, movidas, apagadas...
   for (const en of lastChange.entries) { const i = S.log.lastIndexOf(en); if (i >= 0) S.log.splice(i, 1); }
   if (S.meta.exportedLen > S.log.length) S.meta.exportedLen = S.log.length;
   lastChange = null;
-  save(K.inv, S.inv); save(K.log, S.log); save(K.meta, S.meta); save(K.lots, S.lots);
+  save(K.inv, S.inv); save(K.log, S.log); save(K.meta, S.meta); save(K.lots, S.lots); save(K.tags, S.tags); save(K.labels, S.labels); save(K.kits, S.kits);
   render(true);
 }
 // folha de escolha: devolve o valor da opção tocada, ou undefined se fechar sem escolher
@@ -699,6 +906,7 @@ function openQty(path, mode) {
   }
   function update() {
     for (const k of Object.keys(segBtns)) segBtns[k].setAttribute('aria-pressed', String(k === m));
+    segSync(seg);
     const n = val(), r = result();
     preview.className = 'preview';
     if (n === null) preview.replaceChildren(`Atual: `, h('b', null, cur));
@@ -728,7 +936,7 @@ function openNote(entry) {
   ta.value = entry.nota || '';
   const close = openSheet([
     h('h3', null, 'Nota da alteração'),
-    h('div', {class: 'sub'}, entry.tipo === 'receita' ? `Receita · ${entry.item}` : entry.tipo === 'kit' ? `${entry.item}: ${entry.depois} kit(s)` : `${entry.item}: ${entry.antes} → ${entry.depois}`),
+    h('div', {class: 'sub'}, (entry.tipo === 'receita' || entry.tipo === 'estrutura' || entry.tipo === 'atributo') ? `${recPrefix(entry)}${entry.item}` : entry.tipo === 'kit' ? `${entry.item}: ${entry.depois} kit(s)` : `${entry.item}: ${entry.antes} → ${entry.depois}`),
     ta,
     h('div', {class: 'row'},
       h('button', {class: 'btn gray', type: 'button', onclick: () => close()}, 'Cancelar'),
@@ -739,25 +947,28 @@ function openNote(entry) {
 
 /* ---------- importar / exportar ---------- */
 function detect(d) {
+  if (d && d.gest_backup === 1) return 'backup';
   if (d && Array.isArray(d.entries)) return 'hist';
   if (d && Array.isArray(d.library) && isFolder(d.assignments)) return 'tags';
   if (validInv(d)) return 'inv';
   return null;
 }
 async function importFiles(files) {
-  let inv = null, tags = null, tagsText = '', invName = '';
+  let inv = null, tags = null, tagsText = '', invName = '', backup = null;
   const problems = [];
   for (const f of files) {
     try {
       const text = await f.text();
       const d = JSON.parse(text);
       const kind = detect(d);
+      if (kind === 'backup') { backup = d; continue; }
       if (kind === 'inv') { inv = d; invName = f.name; }
       else if (kind === 'tags') { tags = d; tagsText = text; }
       else if (kind === 'hist') problems.push(`${f.name}: é um ficheiro de histórico, não de inventário.`);
       else problems.push(`${f.name}: não parece ser um inventario.json nem um tags.json.`);
     } catch (e) { problems.push(`${f.name}: não é um ficheiro JSON válido.`); }
   }
+  if (backup) { await restoreBackup(backup); return; }
   if (!inv && !tags) {
     openSheet([h('h3', null, 'Nada importado'), h('p', null, problems.join(' ') || 'Escolha o inventario.json e o tags.json.'),
       h('button', {class: 'btn gray block', type: 'button', onclick: e => e.target.closest('.backdrop').remove()}, 'Fechar')]);
@@ -769,29 +980,29 @@ async function importFiles(files) {
     if (!ok) return;
   }
   if (inv) {
-    S.inv = inv; S.base = JSON.parse(JSON.stringify(inv)); S.log = []; S.lots = cloneLots(S.baseLots); S.kits = cloneLots(S.baseKits); kitIdx = null; S.edit = null; save(K.lots, S.lots); save(K.kits, S.kits);
+    S.inv = inv; S.base = JSON.parse(JSON.stringify(inv)); S.log = []; S.lots = cloneLots(S.baseLots); S.kits = cloneLots(S.baseKits); S.tags = cloneLots(S.baseTags); S.labels = cloneLots(S.baseLabels); kitIdx = null; S.edit = null; save(K.lots, S.lots); save(K.kits, S.kits); save(K.tags, S.tags); save(K.labels, S.labels);
     S.meta = {importedAt: new Date().toISOString(), exportedLen: 0, file: invName};
     S.path = []; S.tagFilter = null; lastChange = null;
     save(K.inv, S.inv); save(K.base, S.base); save(K.log, S.log); save(K.meta, S.meta);
   }
   if (tags && !inv && pending() > 0) {
     const ok = await ask({title: 'Substituir lotes e kits?', danger: true, ok: 'Importar',
-      text: `Tem ${pending()} alteração(ões) por exportar. Os lotes do ficheiro novo não incluem as saídas já feitas aqui, por isso os lotes mostrados deixam de bater certo. Exporte primeiro.`});
+      text: `Tem ${pending()} alteração(ões) por exportar. O ficheiro novo não inclui o que já fez aqui (saídas de kits, pastas e peças criadas ou movidas, receitas...), por isso o que vê deixa de bater certo. Exporte primeiro.`});
     if (!ok) tags = null;
   }
   if (tags) {
     S.tags = {library: tags.library.filter(t => typeof t === 'string'), assignments: tags.assignments};
-    S.lots = readLots(tagsText, tags); S.baseLots = cloneLots(S.lots); S.kits = readKits(tags); S.baseKits = cloneLots(S.kits); kitIdx = null; S.kit = null; S.edit = null;
+    S.lots = readLots(tagsText, tags); S.baseLots = cloneLots(S.lots); S.kits = readKits(tags); S.baseKits = cloneLots(S.kits); S.labels = readLabels(tags); S.baseLabels = cloneLots(S.labels); S.baseTags = cloneLots(S.tags); save(K.labels, S.labels); save(K.baselabels, S.baseLabels); save(K.basetags, S.baseTags); kitIdx = null; S.kit = null; S.edit = null;
     save(K.tags, S.tags); save(K.lots, S.lots); save(K.baselots, S.baseLots); save(K.kits, S.kits); save(K.basekits, S.baseKits);
   }
   const parts = [];
   if (inv) parts.push(`inventário (${stats(S.inv).pieces} peças)`);
-  if (tags) parts.push(`tags (${S.tags.library.length}), kits (${kitNames().length}), peças com lotes (${Object.keys(S.lots).length})`);
+  if (tags) parts.push(`tags (${S.tags.library.length}), etiquetas (${Object.keys(S.labels.library).length}), kits (${kitNames().length}), peças com lotes (${Object.keys(S.lots).length})`);
   toast('Importado: ' + parts.join(' e ') + (problems.length ? '. Ignorados: ' + problems.length : '.'));
   render();
 }
-function download(name, text) {
-  const url = URL.createObjectURL(new Blob([text], {type: 'application/json'}));
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], {type: type || 'application/json'}));
   const a = h('a', {href: url, download: name});
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
@@ -810,10 +1021,10 @@ function exportLog() {
 async function resetToImported() {
   if (!S.base) return;
   const ok = await ask({title: 'Repor o inventário importado?', danger: true, ok: 'Repor',
-    text: `Todas as ${S.log.length} alteração(ões) feitas no telemóvel são descartadas e as quantidades e os lotes voltam ao ficheiro importado.`});
+    text: `Todas as ${S.log.length} alteração(ões) feitas no telemóvel são descartadas e o inventário, os lotes, as tags e as receitas voltam ao ficheiro importado.`});
   if (!ok) return;
   S.inv = JSON.parse(JSON.stringify(S.base)); S.log = []; S.meta.exportedLen = 0; lastChange = null;
-  S.lots = cloneLots(S.baseLots); S.kits = cloneLots(S.baseKits); kitIdx = null; S.edit = null; save(K.lots, S.lots); save(K.kits, S.kits);
+  S.lots = cloneLots(S.baseLots); S.kits = cloneLots(S.baseKits); S.tags = cloneLots(S.baseTags); S.labels = cloneLots(S.baseLabels); kitIdx = null; S.edit = null; save(K.lots, S.lots); save(K.kits, S.kits); save(K.tags, S.tags); save(K.labels, S.labels);
   save(K.inv, S.inv); save(K.log, S.log); save(K.meta, S.meta);
   toast('Inventário reposto.'); render(true);
 }
@@ -824,17 +1035,39 @@ function openMenu() {
     svg(ICON[icon]), h('span', null, title, sub ? h('small', null, sub) : null));
   const close = openSheet([
     h('h3', null, 'Menu'),
-    item('upload', 'Importar ficheiros', 'inventario.json e tags.json do PC', pickFiles),
+    item('upload', 'Importar ficheiros', 'inventario.json e tags.json do PC (ou um backup)', pickFiles),
     item('download', 'Exportar alterações', S.log.length ? `${pending()} por exportar` : 'Sem alterações', () => S.log.length && exportLog()),
+    item('palette', 'Aspeto e módulos', 'Paleta, claro ou escuro, animações e o que usar', openAspect),
+    item('download', 'Backup completo', 'Guarda tudo num só ficheiro', backupAll),
+    item('upload', 'Restaurar backup', 'Volta a um backup completo', pickFiles),
+    item('list', 'Exportar inventário (CSV)', 'Abre no Excel', () => exportCsv()),
     item('help', 'Como funciona', null, openHelp)
   ]);
+}
+function openAspect() {
+  const T = window.GestTheme;
+  const box = h('div');
+  function draw() {
+    const cur = T.get();
+    const pal = h('div', {class: 'choices'}, ...Object.entries(T.PALETTES).map(([k, p]) =>
+      h('button', {type: 'button', class: 'pchoice' + (cur.pal === k ? ' on' : ''), 'aria-pressed': String(cur.pal === k), onclick: () => { T.set({pal: k}); draw(); }},
+        h('span', {class: 'dot', style: `background:linear-gradient(135deg,${p.g[0]},${p.g[1]})`}), p.n)));
+    const mode = h('div', {class: 'choices'}, ...T.MODES.map(([k, n]) =>
+      h('button', {type: 'button', class: 'pchoice' + (cur.mode === k ? ' on' : ''), 'aria-pressed': String(cur.mode === k), onclick: () => { T.set({mode: k}); draw(); }}, n)));
+    const sw = h('button', {type: 'button', class: 'switch-row', role: 'switch', 'aria-checked': String(!!cur.anim), onclick: () => { T.set({anim: !cur.anim}); draw(); }},
+      h('span', null, h('b', null, 'Animações ligadas'), h('small', null, 'Desligue para a app não ter movimento')), h('span', {class: 'switch' + (cur.anim ? ' on' : '')}));
+    box.replaceChildren(h('div', {class: 'lbl', style: 'margin-bottom:8px'}, 'Paleta'), pal, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Modo'), mode, h('div', {style: 'margin-top:16px'}, sw), h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Módulos'), h('div', {class: 'choices'}, ...MODULES.map(([k, name]) => { const on = (cur.mods || {})[k] !== false; return h('button', {type: 'button', class: 'pchoice' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => { T.set({mods: Object.assign({kits: true, lots: true, labels: true, tags: true}, cur.mods || {}, {[k]: !on})}); draw(); render(true); }}, name); })));
+  }
+  draw();
+  const close = openSheet([h('h3', null, 'Aspeto'), box, h('button', {class: 'btn block', type: 'button', onclick: () => close()}, 'Fechar')]);
 }
 function openHelp() {
   const close = openSheet([
     h('h3', null, 'Como funciona'),
     h('p', null, 'Esta app guarda uma cópia do seu inventário só neste telemóvel. Nada é enviado para a internet.'),
     h('p', null, '1. No PC, copie o inventario.json e o tags.json (pasta "Base de Dados") para o telemóvel e importe-os aqui.'),
-    h('p', null, 'No separador Kits vê as receitas e quantos kits dá para montar com o stock atual; as peças mostram os seus lotes (toque no lote para ver o detalhe).'),
+    h('p', null, 'Abra o menu (☰, ou deslize a partir da borda esquerda) para ir ao Início, ao Histórico e aos Kits, e para ver as pastas, tags, etiquetas e lotes.'),
+    h('p', null, 'Em Kits vê as receitas e quantos kits dá para montar com o stock atual; as peças mostram os seus lotes (toque no lote para ver o detalhe).'),
     h('p', null, 'Em Kits pode criar kits novos ("+ Novo kit"), editar a receita e apagar. Estas alterações também ficam em Alterações e seguem no ficheiro exportado: se a receita tiver mudado no PC entretanto, o PC mostra um conflito e não a substitui.'),
     h('p', null, 'Em Kits, "Dar saída de kits" tira de uma só vez todas as peças da receita (por lotes, do mais antigo para o mais novo, ou o lote que escolher) e fica registado nas Alterações. Se uma peça tem lotes, o + e o − perguntam o lote.'),
     h('p', null, '2. Consulte e ajuste quantidades com + e −. Cada alteração fica registada.'),
@@ -850,8 +1083,9 @@ const main = document.getElementById('main');
 function pieceChips(p) {
   const out = [];
   const open = () => openPiece(p.path);
-  for (const t of lotChipTexts(p.path)) out.push(h('button', {class: 'chip lot', type: 'button', onclick: open}, t));
-  const ks = kitsUsingPiece(pkey(p.path));
+  if (modOn('lots')) for (const t of lotChipTexts(p.path)) out.push(h('button', {class: 'chip lot', type: 'button', onclick: open}, t));
+  if (modOn('labels')) for (const t of labelChipTexts(p.path)) out.push(h('button', {class: 'chip lab', type: 'button', onclick: open}, t));
+  const ks = modOn('kits') ? kitsUsingPiece(pkey(p.path)) : [];
   if (ks.length && ks.length <= 2) for (const [n] of ks) out.push(h('button', {class: 'chip kit', type: 'button', onclick: open}, (/^kit\b/i.test(n) ? n : 'Kit ' + n)));
   else if (ks.length) out.push(h('button', {class: 'chip kit', type: 'button', onclick: open}, ks.length + ' kits'));
   return out.length ? h('div', {class: 'chips'}, ...out) : null;
@@ -868,6 +1102,15 @@ function openPiece(path) {
     ks.length ? h('div', null, h('div', {class: 'h2'}, 'Usada nos kits'),
       ...ks.map(([n, q]) => h('button', {class: 'card kitc', type: 'button', onclick: () => { close(); openKit(n); }},
         h('div', {class: 'l1'}, h('span', {class: 'nm'}, n), h('span', {class: 'st ok'}, q + ' por kit'))))) : null,
+    (modOn('tags') || modOn('labels') || modOn('lots')) ? h('div', null, h('div', {class: 'h2', style: 'margin:0 0 8px'}, 'Atributos'), h('div', {class: 'acts'},
+      ...(modOn('tags') ? [h('button', {class: 'btn gray', type: 'button', onclick: () => { close(); flowTag(path); }}, svg(ICON.tag, 18), 'Tag')] : []),
+      ...(modOn('labels') ? [h('button', {class: 'btn gray', type: 'button', onclick: () => { close(); flowLabels(path); }}, svg(ICON.tag, 18), 'Etiquetas')] : []),
+      ...(modOn('lots') ? [h('button', {class: 'btn gray', type: 'button', onclick: () => { close(); flowLots(path); }}, svg(ICON.layers, 18), 'Lotes')] : []))) : null,
+    h('div', null, h('div', {class: 'h2', style: 'margin:0 0 8px'}, 'Ações'), h('div', {class: 'acts'},
+      h('button', {class: 'btn gray', type: 'button', onclick: () => { close(); flowRename(path, false); }}, svg(ICON.edit, 18), 'Renomear'),
+      h('button', {class: 'btn gray', type: 'button', onclick: () => { close(); flowMove(path, false, false); }}, svg(ICON.move, 18), 'Mover'),
+      h('button', {class: 'btn gray', type: 'button', onclick: () => { close(); flowMove(path, false, true); }}, svg(ICON.copy, 18), 'Copiar'),
+      h('button', {class: 'btn red', type: 'button', onclick: () => { close(); flowDelete(path, false); }}, svg(ICON.trash, 18), 'Apagar'))),
     h('button', {class: 'btn gray block', type: 'button', onclick: () => close()}, 'Fechar')
   ]);
 }
@@ -879,8 +1122,8 @@ function pieceCard(p, showPath) {
   const qty = node ? (Number(node[p.key]) || 0) : p.qty;
   const nameEl = showPath
     ? h('button', {class: 'p-name', type: 'button', onclick: () => goToPiece(p)}, display(p.key))
-    : h('div', {class: 'p-name'}, display(p.key));
-  return h('div', {class: 'card piece' + (flash ? ' flash' : ''), 'data-pk': pkey(p.path)},
+    : h('button', {class: 'p-name', type: 'button', onclick: () => openPiece(p.path)}, display(p.key));
+  return h('div', {class: 'card piece' + (flash ? ' flash' : ''), 'data-pk': pkey(p.path), style: '--pc:' + colorFor(p.path[0])},
     h('div', {class: 'p-info'}, nameEl, tag ? chip(tag) : null, pieceChips(p), showPath ? h('div', {class: 'p-path'}, p.path.slice(0, -1).join(' › ')) : null),
     h('div', {class: 'ctrl'},
       h('button', {class: 'minus', type: 'button', 'aria-label': 'Retirar de ' + display(p.key), onclick: () => openQty(p.path, 'sub')}, '−'),
@@ -890,35 +1133,58 @@ function pieceCard(p, showPath) {
 function folderCard(path) {
   const st = stats(getNode(path));
   return h('button', {class: 'card folder', type: 'button', onclick: () => { S.path = path; S.view = 'folders'; render(); window.scrollTo(0, 0); }},
-    svg(ICON.folder, 20),
-    h('span', {class: 'f-name'}, path[path.length - 1]),
-    h('span', {class: 'f-meta'}, `${st.pieces} peça${st.pieces === 1 ? '' : 's'} · ${st.units} un.`),
+    h('span', {class: 'tile', style: 'background:' + colorFor(path[0])}, svg(ICON.folder, 22)),
+    h('span', {class: 'f-txt'}, h('span', {class: 'f-name'}, path[path.length - 1]),
+      h('span', {class: 'f-meta'}, `${st.pieces} peça${st.pieces === 1 ? '' : 's'} · ${fmt(st.units)} un.`, st.zero ? h('b', {style: 'color:var(--danger);font-weight:600'}, ` · ${st.zero} sem stock`) : null)),
     svg(ICON.chev, 18));
 }
 function goToPiece(p) {
   S.query = ''; document.getElementById('q').value = ''; document.getElementById('q-clear').hidden = true;
-  S.view = 'folders'; S.path = p.path.slice(0, -1); S.highlight = pkey(p.path); S.tagFilter = null;
+  S.view = 'folders'; S.path = p.path.slice(0, -1); S.highlight = pkey(p.path); S.tagFilter = null; S.labelFilter = null; S.lotFilter = null;
   render();
   const target = [...main.querySelectorAll('[data-pk]')].find(e => e.dataset.pk === S.highlight);
   if (target) target.scrollIntoView({block: 'center'});
   setTimeout(() => { S.highlight = null; }, 2000);
 }
 
+function startEmpty() {
+  S.inv = {}; S.base = {}; S.tags = {library: [], assignments: {}}; S.labels = {library: {}, assignments: {}}; S.lots = {}; S.kits = {};
+  S.baseLots = {}; S.baseKits = {}; S.baseTags = {library: [], assignments: {}}; S.baseLabels = {library: {}, assignments: {}};
+  S.log = []; S.meta = {importedAt: new Date().toISOString(), exportedLen: 0, file: ''}; S.path = []; S.view = 'folders'; kitIdx = null;
+  save(K.base, S.base); save(K.meta, S.meta); save(K.baselots, S.baseLots); save(K.basekits, S.baseKits); save(K.basetags, S.baseTags); save(K.baselabels, S.baseLabels); saveAll();
+  render(); window.scrollTo(0, 0);
+}
+const MODULES = [['kits', 'Kits', 'Receitas e saída de kits', 'kit'], ['lots', 'Lotes', 'Stock repartido por lote (do mais antigo ao mais novo)', 'layers'],
+  ['labels', 'Etiquetas', 'Propriedades extra, com ou sem valor', 'tag'], ['tags', 'Tags', 'Uma marca por peça, para agrupar', 'tag']];
 function viewWelcome() {
-  main.replaceChildren(h('div', {class: 'welcome'},
-    h('h1', null, 'Bem-vindo ao Gest'),
-    h('p', null, 'Para começar, importe os ficheiros do inventário que tem no PC.'),
-    h('ol', null,
-      h('li', null, 'No PC, abra a pasta "Base de Dados".'),
-      h('li', null, 'Envie o inventario.json e o tags.json para o telemóvel.'),
-      h('li', null, 'Toque em "Importar" e escolha os dois ficheiros.')),
-    h('button', {class: 'btn green block', type: 'button', onclick: pickFiles}, svg(ICON.upload, 20), 'Importar ficheiros'),
-    h('p', {class: 'sub', style: 'color:var(--muted);font-size:13px'}, 'Os dados ficam guardados só neste telemóvel.')));
+  const step = S.onb || 'welcome';
+  const feat = (icon, b, t) => h('li', null, svg(ICON[icon], 20), h('span', null, h('b', null, b), ' — ' + t));
+  if (step === 'welcome') {
+    main.replaceChildren(h('div', {class: 'onb-box'}, h('div', {class: 'logo'}, 'G.'), h('h1', null, 'Gest'),
+      h('p', {class: 'lead'}, 'O teu inventário, simples e só teu. Sem complicações, sem internet, sem anúncios.'),
+      h('ul', {class: 'feats'}, feat('lock', 'Privado', 'os dados nunca saem do telemóvel'), feat('wifioff', 'Offline', 'funciona em qualquer lado'), feat('sliders', 'Teu', 'escolhes o que queres usar')),
+      h('button', {class: 'btn green block', type: 'button', onclick: () => { S.onb = 'mods'; render(); }}, 'Começar')));
+  } else if (step === 'mods') {
+    const cur = Object.assign({kits: true, lots: true, labels: true, tags: true}, window.GestTheme.get().mods || {});
+    const cards = MODULES.map(([k, name, sub, icon]) => h('button', {class: 'modcard' + (cur[k] ? ' on' : ''), type: 'button', 'aria-pressed': String(!!cur[k]),
+      onclick: () => { cur[k] = !cur[k]; window.GestTheme.set({mods: Object.assign({}, cur)}); render(true); }},
+      h('span', {class: 'mi'}, svg(ICON[icon], 22)), h('span', null, h('b', null, name), h('small', null, sub)), h('span', {class: 'ck'}, cur[k] ? svg(ICON.check, 14) : null)));
+    main.replaceChildren(h('div', {class: 'onb-box', style: 'justify-items:stretch;text-align:left'},
+      h('div', null, h('h2', null, 'O que queres usar?'), h('p', {class: 'lead', style: 'max-width:none;margin-top:6px'}, 'Escolhe o que te faz falta. Podes mudar quando quiseres, em Mais opções › Aspeto e módulos. Nada se perde.')),
+      ...cards, h('button', {class: 'btn green block', type: 'button', onclick: () => { S.onb = 'start'; render(); window.scrollTo(0, 0); }}, 'Continuar')));
+  } else {
+    main.replaceChildren(h('div', {class: 'onb-box', style: 'justify-items:stretch;text-align:left'},
+      h('div', null, h('h2', null, 'Como queres começar?'), h('p', {class: 'lead', style: 'max-width:none;margin-top:6px'}, 'Os dados ficam guardados só neste telemóvel.')),
+      h('button', {class: 'modcard', type: 'button', onclick: pickFiles}, h('span', {class: 'mi'}, svg(ICON.upload, 22)), h('span', null, h('b', null, 'Importar do PC'), h('small', null, 'Escolhe o inventario.json e o tags.json (e, se tiveres, um backup do Gest)'))),
+      h('button', {class: 'modcard', type: 'button', onclick: startEmpty}, h('span', {class: 'mi'}, svg(ICON.plus, 22)), h('span', null, h('b', null, 'Começar do zero'), h('small', null, 'Cria as tuas pastas e peças aqui'))),
+      h('button', {class: 'btn gray block', type: 'button', onclick: () => { S.onb = 'mods'; render(); }}, 'Voltar')));
+  }
 }
 
 function viewFolders() {
   const node = getNode(S.path);
   if (!node) { S.path = []; return viewFolders(); }
+  if (!S.path.length) return viewHome();   // a raiz é o Painel Inicial
   const crumbs = h('nav', {class: 'crumbs', 'aria-label': 'Caminho'});
   crumbs.append(h('button', {class: 'crumb' + (S.path.length === 0 ? ' cur' : ''), type: 'button', onclick: () => { S.path = []; render(); }}, 'Início'));
   S.path.forEach((seg, i) => {
@@ -930,7 +1196,14 @@ function viewFolders() {
   const folders = Object.keys(node).filter(k => isFolder(node[k])).sort(cmp);
   const pieces = Object.keys(node).filter(k => !isFolder(node[k]))
     .sort((a, b) => cmp(display(a), display(b)) || cmp(tagOf(S.path.concat(a)) || '', tagOf(S.path.concat(b)) || ''));
-  const els = [crumbs];
+  const sst = stats(node);
+  const sstat = (label, value, bad) => h('div', {class: 'stat3'}, h('span', null, label), h('b', {style: bad ? 'color:var(--danger)' : ''}, value));
+  const els = [crumbs, h('h2', {class: 'ptitle'}, S.path[S.path.length - 1]),
+    h('div', {class: 'stats3'}, sstat('Peças', fmt(sst.pieces)), sstat('Unidades', fmt(sst.units)), sstat('Sem stock', fmt(sst.zero), sst.zero > 0)),
+    h('button', {class: 'btn green block', type: 'button', style: 'white-space:nowrap', onclick: () => flowNewPiece(S.path.slice())}, svg(ICON.plus, 20), 'Adicionar peça'),
+    h('div', {class: 'row', style: 'flex-wrap:nowrap'},
+      h('button', {class: 'btn gray', type: 'button', style: 'flex:1 1 auto;white-space:nowrap', onclick: () => flowNewFolder(S.path.slice())}, svg(ICON.plus, 18), 'Subpasta'),
+      h('button', {class: 'btn gray', type: 'button', style: 'flex:0 0 56px;padding:0', 'aria-label': 'Mais ações da pasta', onclick: () => openFolderMenu(S.path.slice())}, svg(ICON.dots, 22)))];
   if (folders.length) els.push(...folders.map(k => folderCard(S.path.concat(k))));
   if (pieces.length) {
     if (folders.length) els.push(h('div', {class: 'h2'}, 'Peças'));
@@ -1097,10 +1370,11 @@ function viewKitEditor() {
   let qTimer2 = null;
   qInp.addEventListener('input', () => { E.q = qInp.value; clearTimeout(qTimer2); qTimer2 = setTimeout(renderResults, 120); });
   const segB = {};
-  const setMode = m => { E.mode = m; for (const k of Object.keys(segB)) segB[k].setAttribute('aria-pressed', String(k === m)); qInp.placeholder = m === 'kit' ? 'Pesquisar kits...' : 'Pesquisar peças...'; renderResults(); };
+  const setMode = m => { E.mode = m; for (const k of Object.keys(segB)) segB[k].setAttribute('aria-pressed', String(k === m)); segSync(seg); qInp.placeholder = m === 'kit' ? 'Pesquisar kits...' : 'Pesquisar peças...'; renderResults(); };
   const seg = h('div', {class: 'seg', style: 'grid-template-columns:repeat(2,1fr)', role: 'group', 'aria-label': 'Juntar'},
     ...[['peca', 'Peças'], ['kit', 'Kits']].map(([k, label]) => (segB[k] = h('button', {type: 'button', class: 'm-set', onclick: () => setMode(k)}, label))));
   for (const k of Object.keys(segB)) segB[k].setAttribute('aria-pressed', String(k === E.mode));
+  segSync(seg);
   renderComps(); renderResults();
   main.replaceChildren(
     h('div', {class: 'lbl', style: 'margin-top:4px'}, E.old ? 'Editar receita' : 'Novo kit'),
@@ -1135,8 +1409,9 @@ function viewKits() {
     return;
   }
   const novo = h('button', {class: 'btn teal block', type: 'button', onclick: () => startEdit(null)}, '+ Novo kit');
-  if (!names.length) { main.replaceChildren(novo, h('div', {class: 'empty'}, 'Ainda não há kits. Crie um, ou importe o tags.json do PC.')); return; }
-  main.replaceChildren(novo, h('div', {class: 'hint'}, 'Toque num kit para ver a receita.'),
+  const kt = h('h2', {class: 'ptitle'}, 'Kits');
+  if (!names.length) { main.replaceChildren(kt, novo, h('div', {class: 'empty'}, 'Ainda não há kits. Crie um, ou importe o tags.json do PC.')); return; }
+  main.replaceChildren(kt, novo, h('div', {class: 'hint'}, 'Toque num kit para ver a receita.'),
     ...names.map(n => { const st = kitStatusInfo(n), c = S.kits[n].componentes.length;
       return h('button', {class: 'card kitc', type: 'button', onclick: () => { S.kit = n; render(); window.scrollTo(0, 0); }},
         h('div', {class: 'l1'}, h('span', {class: 'nm'}, n), svg(ICON.chev, 18)),
@@ -1147,7 +1422,7 @@ function viewSearch() {
   const toks = queryTokens(S.query);
   const fol = allFolders().filter(f => { const hs = haystack(f.path.join(' ')); return toks.every(t => hs.includes(t)); });
   const pcs = allPieces().filter(p => {
-    const hs = haystack(p.path.map(display).join(' ') + ' ' + (tagOf(p.path) || '') + ' ' + pieceLots(p.path).map(x => 'Lote ' + x[0]).join(' ') + ' ' + kitsUsingPiece(pkey(p.path)).map(x => 'Kit ' + x[0]).join(' '));
+    const hs = haystack(p.path.map(display).join(' ') + ' ' + (tagOf(p.path) || '') + ' ' + pieceLots(p.path).map(x => 'Lote ' + x[0]).join(' ') + ' ' + kitsUsingPiece(pkey(p.path)).map(x => 'Kit ' + x[0]).join(' ') + ' ' + labelChipTexts(p.path).join(' '));
     return toks.every(t => hs.includes(t));
   }).sort((a, b) => cmp(display(a.key), display(b.key)));
   const kts = kitNames().filter(n => { const hs = haystack(n + ' ' + S.kits[n].componentes.map(c => c.tipo === 'kit' ? c.nome : display(c.caminho.split('\n').pop())).join(' ')); return toks.every(t => hs.includes(t)); });
@@ -1181,27 +1456,8 @@ function viewTags() {
       chip(t), h('span', {class: 'f-name'}), h('span', {class: 'f-meta'}, `${counts[t] || 0} peça${(counts[t] || 0) === 1 ? '' : 's'}`), svg(ICON.chev, 18))));
 }
 
-function viewSummary() {
-  const st = stats(S.inv);
-  const mains = Object.keys(S.inv).filter(k => isFolder(S.inv[k])).sort(cmp).map(k => ({k, ...stats(S.inv[k])}));
-  const max = Math.max(1, ...mains.map(m => m.units));
-  const zero = allPieces().filter(p => p.qty === 0).sort((a, b) => cmp(display(a.key), display(b.key)));
-  main.replaceChildren(
-    h('div', {class: 'stats'},
-      h('div', {class: 'stat'}, h('b', {style: 'color:var(--blue-hi)'}, st.folders), h('span', null, 'Pastas')),
-      h('div', {class: 'stat'}, h('b', {style: 'color:var(--green)'}, st.pieces), h('span', null, 'Peças')),
-      h('div', {class: 'stat'}, h('b', {style: 'color:var(--amber)'}, st.units), h('span', null, 'Unidades'))),
-    h('div', {class: 'h2'}, 'Por pasta principal'),
-    ...mains.map(m => h('button', {class: 'card mf', type: 'button', onclick: () => { S.path = [m.k]; S.view = 'folders'; render(); window.scrollTo(0, 0); }},
-      h('div', {class: 'top-line'}, h('span', {class: 'nm'}, m.k), h('span', {class: 'un'}, m.units + ' un.')),
-      h('div', {class: 'f-meta', style: 'color:var(--muted);font-size:12.5px'}, `${m.pieces} peças · ${m.folders} subpastas`),
-      h('div', {class: 'bar'}, h('i', {style: `width:${Math.round(m.units / max * 100)}%`})))),
-    h('div', {class: 'h2'}, `Sem stock (${zero.length})`),
-    ...(zero.length ? zero.map(p => pieceCard(p, true)) : [h('div', {class: 'hint'}, 'Não há peças com quantidade 0.')]));
-}
-
 function viewChanges() {
-  const els = [];
+  const els = [h('h2', {class: 'ptitle'}, 'Histórico')];
   const n = pending();
   els.push(h('div', {class: 'hint'}, S.log.length
     ? `${S.log.length} alteração(ões) feitas neste telemóvel` + (n ? `, ${n} por exportar.` : '. Todas exportadas.')
@@ -1210,10 +1466,10 @@ function viewChanges() {
     h('button', {class: 'btn green', type: 'button', onclick: exportLog, disabled: !S.log.length}, svg(ICON.download, 20), 'Exportar alterações')));
   if (S.log.length) els.push(h('button', {class: 'btn red block', type: 'button', onclick: resetToImported}, 'Repor ao ficheiro importado'));
   for (const e of S.log.slice().reverse()) {
-    const isKit = e.tipo === 'kit', isRec = e.tipo === 'receita';
+    const isKit = e.tipo === 'kit', isRec = e.tipo === 'receita' || e.tipo === 'estrutura' || e.tipo === 'atributo';
     const d = isKit ? -e.depois : isRec ? 0 : e.depois - e.antes;
     els.push(h('button', {class: 'card chg', type: 'button', style: 'width:100%;text-align:left', onclick: () => openNote(e), 'aria-label': 'Editar nota de ' + e.item},
-      h('div', {class: 'l1'}, h('span', {class: 'nm'}, (isKit ? 'Kit · ' : isRec ? 'Receita · ' : '') + e.item), h('span', {class: 'delta ' + (d >= 0 ? 'up' : 'down')}, isRec ? ({criar: 'criada', editar: 'editada', apagar: 'apagada'}[e.receita && e.receita.acao] || 'receita') : isKit ? e.depois + ' kit(s)' : (d >= 0 ? '+' : '−') + Math.abs(d))),
+      h('div', {class: 'l1'}, h('span', {class: 'nm'}, (isKit ? 'Kit · ' : isRec ? recPrefix(e) : '') + e.item), h('span', {class: 'delta ' + (d >= 0 ? 'up' : 'down')}, isRec ? recBadge(e) : isKit ? e.depois + ' kit(s)' : (d >= 0 ? '+' : '−') + Math.abs(d))),
       h('div', {class: 'dt'}, isRec ? (e.detalhe || '') : isKit ? (e.itens || []).join(' · ') : `${e.caminho}  ·  ${e.antes} → ${e.depois}` + (e.detalhe ? `  ·  ${e.detalhe}` : '')),
       h('div', {class: 'tm'}, `${e.ts.slice(8, 10)}/${e.ts.slice(5, 7)}/${e.ts.slice(0, 4)} ${e.ts.slice(11, 16)}`),
       e.nota ? h('div', {class: 'note'}, 'Nota: ' + e.nota) : h('div', {class: 'tm'}, 'Toque para adicionar nota')));
@@ -1222,15 +1478,682 @@ function viewChanges() {
 }
 
 /* ---------- navegação e desenho ---------- */
-const TABS = [['folders', 'Pastas', 'folder'], ['tags', 'Tags', 'tag'], ['kits', 'Kits', 'kit'], ['summary', 'Resumo', 'chart'], ['changes', 'Alterações', 'list']];
+/* ---------- navegação: menu lateral, Painel Inicial, etiquetas e lotes ---------- */
+let enterAnim = false;   // true quando se chega a um ecrã novo (os números do Painel "sobem")
+function readLabels(d) {
+  const lb = isFolder(d.labels) ? d.labels : {};
+  const library = {}, assignments = {};
+  if (isFolder(lb.library)) for (const [n, v] of Object.entries(lb.library)) library[n] = {tipo: isFolder(v) && v.tipo === 'valor' ? 'valor' : 'livre'};
+  if (isFolder(lb.assignments)) for (const [k, m] of Object.entries(lb.assignments)) {
+    if (!isFolder(m)) continue;
+    const o = {};
+    for (const [n, v] of Object.entries(m)) if (n in library) o[n] = v == null ? '' : String(v);
+    if (Object.keys(o).length) assignments[k] = o;
+  }
+  return {library, assignments};
+}
+const modOn = k => ((window.GestTheme.get().mods || {})[k]) !== false;
+const labelsOf = path => S.labels.assignments[pkey(path)] || {};
+const labelChipTexts = path => Object.entries(labelsOf(path)).map(([n, v]) => v ? `${n} ${v}` : n);
+
+async function navTo(t) {
+  if (!(await leaveEdit())) return;
+  closeDrawer(); clearSearch(false);
+  S.view = t.view || 'folders'; S.path = t.path || []; S.kit = t.kit || null;
+  S.tagFilter = t.tag || null; S.labelFilter = t.label || null; S.lotFilter = t.lot || null;
+  render(); window.scrollTo(0, 0);
+}
+
+/* menu lateral: Início, Histórico, Kits e os separadores Pastas / Tags / Etiquetas / Lotes */
+let drawerEl = null;
+const drawerKey = e => { if (e.key === 'Escape') closeDrawer(); };
+function closeDrawer(instant) {
+  if (!drawerEl) return;
+  const {back, panel} = drawerEl; drawerEl = null;
+  document.removeEventListener('keydown', drawerKey);
+  panel.classList.remove('open'); back.classList.remove('open');
+  const done = () => { back.remove(); panel.remove(); };
+  if (instant || document.documentElement.classList.contains('no-anim')) done(); else setTimeout(done, 280);
+}
+function openDrawer() {
+  if (drawerEl) return;
+  clearTimeout(toastTimer); document.getElementById('toast').hidden = true;
+  const back = h('div', {class: 'dback', onclick: () => closeDrawer()});
+  const panel = h('aside', {class: 'drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Navegação'});
+  let x0 = null, y0 = 0;
+  panel.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive: true});
+  panel.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (dx < -60 && Math.abs(dy) < 50) closeDrawer(); }, {passive: true});
+  document.getElementById('sheets').append(back, panel);
+  if (S.view === 'folders') for (let i = 1; i < S.path.length; i++) S.exp.add(pkey(S.path.slice(0, i)));   // abre os pais da pasta atual
+  drawerEl = {back, panel};
+  renderDrawer();
+  void panel.offsetWidth; panel.classList.add('open'); back.classList.add('open');
+  document.addEventListener('keydown', drawerKey);
+}
+function drawerTree(node, path, depth, out) {
+  for (const k of Object.keys(node).filter(x => isFolder(node[x])).sort(cmp)) {
+    const p = path.concat(k), key = pkey(p), n = node[k];
+    const hasSub = Object.values(n).some(isFolder), open = S.exp.has(key);
+    const active = S.view === 'folders' && !S.query.trim() && pkey(S.path) === key;
+    out.push(h('div', {class: 'drow' + (active ? ' on' : ''), style: `padding-left:${6 + depth * 16}px`},
+      hasSub ? h('button', {class: 'dchev' + (open ? ' open' : ''), type: 'button', 'aria-label': (open ? 'Fechar ' : 'Abrir ') + k,
+        onclick: () => { if (open) S.exp.delete(key); else S.exp.add(key); renderDrawer(); }}, svg(ICON.chev, 16)) : h('span', {class: 'dchev'}),
+      h('span', {class: 'dsq', style: 'background:' + colorFor(p[0])}),
+      h('button', {class: 'dnm', type: 'button', onclick: () => navTo({view: 'folders', path: p})}, k),
+      h('span', {class: 'ct'}, fmt(stats(n).pieces))));
+    if (open && hasSub) drawerTree(n, p, depth + 1, out);
+  }
+}
+function drawerGroups() {   // {tags, labels, lots}: nome → nº de peças
+  const tags = {}, labels = {}, lots = {};
+  for (const p of allPieces()) {
+    const t = tagOf(p.path); if (t) tags[t] = (tags[t] || 0) + 1;
+    for (const n of Object.keys(labelsOf(p.path))) labels[n] = (labels[n] || 0) + 1;
+    for (const [n] of pieceLots(p.path)) lots[n] = (lots[n] || 0) + 1;
+  }
+  return {tags, labels, lots};
+}
+function renderDrawer() {
+  if (!drawerEl) return;
+  if (S.sb !== 'folders' && !modOn(S.sb)) S.sb = 'folders';
+  const P = drawerEl.panel, oldList = P.querySelector('.dlist'), keep = oldList ? oldList.scrollTop : 0;
+  const q = S.query.trim();
+  const navItem = (icon, label, on, fn, badge) => h('button', {class: 'dn' + (on ? ' on' : ''), type: 'button', onclick: fn},
+    svg(ICON[icon], 20), h('span', {style: 'flex:1'}, label), badge ? h('span', {class: 'dpill'}, badge) : null);
+  const list = h('div', {class: 'dlist'});
+  if (!S.inv) list.append(h('div', {class: 'hint', style: 'padding:14px 8px'}, 'Importe o inventário para ver as pastas.'));
+  else if (S.sb === 'folders') { const rows = []; drawerTree(S.inv, [], 0, rows); list.append(...(rows.length ? rows : [h('div', {class: 'hint', style: 'padding:14px 8px'}, 'Ainda não há pastas.')])); }
+  else {
+    const g = drawerGroups();
+    const cfg = {
+      tags: {names: S.tags.library, counts: g.tags, view: 'tags', key: 'tag', cur: S.tagFilter, empty: 'Ainda não há tags. Importe o tags.json do PC.'},
+      labels: {names: Object.keys(S.labels.library).sort(cmp), counts: g.labels, view: 'labels', key: 'label', cur: S.labelFilter, empty: 'Ainda não há etiquetas. Importe o tags.json do PC.'},
+      lots: {names: Object.keys(g.lots).sort(cmp), counts: g.lots, view: 'lots', key: 'lot', cur: S.lotFilter, empty: 'Ainda não há lotes. Importe o tags.json do PC.'}
+    }[S.sb];
+    if (!cfg.names.length) list.append(h('div', {class: 'hint', style: 'padding:14px 8px'}, cfg.empty));
+    for (const n of cfg.names) list.append(h('div', {class: 'drow' + (S.view === cfg.view && cfg.cur === n && !q ? ' on' : '')},
+      h('span', {class: 'dchev'}), h('span', {class: 'dsq', style: 'background:' + colorFor(n)}),
+      h('button', {class: 'dnm', type: 'button', onclick: () => navTo({view: cfg.view, [cfg.key]: n})}, S.sb === 'lots' ? 'Lote ' + n : n),
+      h('span', {class: 'ct'}, fmt(cfg.counts[n] || 0))));
+  }
+  const seg = h('div', {class: 'seg', role: 'group', 'aria-label': 'Ver por', style: 'margin:6px 14px 8px'},
+    ...[['folders', 'Pastas'], ['tags', 'Tags'], ['labels', 'Etiquetas'], ['lots', 'Lotes']].filter(([k]) => k === 'folders' || modOn(k)).map(([k, l]) =>
+      h('button', {type: 'button', style: 'font-size:13px', 'aria-pressed': String(S.sb === k), onclick: () => { S.sb = k; renderDrawer(); }}, l)));
+  segSync(seg);
+  const n = pending();
+  P.replaceChildren(
+    h('div', {class: 'dhead'}, h('div', {class: 'brand'}, 'Gest'),
+      h('button', {class: 'icon-btn', type: 'button', 'aria-label': 'Fechar navegação', onclick: () => closeDrawer()}, svg('<path d="M6 6l12 12M18 6L6 18"/>', 20))),
+    h('div', {class: 'dnav'},
+      navItem('home', 'Início', S.view === 'folders' && !S.path.length && !q, () => navTo({view: 'folders'})),
+      navItem('history', 'Histórico', S.view === 'changes' && !q, () => navTo({view: 'changes'}), n ? String(n) : ''),
+      navItem('chart', 'Overview', S.view === 'overview' && !q, () => navTo({view: 'overview'})),
+      ...(modOn('kits') ? [navItem('kit', 'Kits', S.view === 'kits' && !q, () => navTo({view: 'kits'}))] : []),
+      navItem('plus', 'Nova pasta principal', false, () => { closeDrawer(); flowNewFolder([]); })),
+    seg, list,
+    h('div', {class: 'dfoot'},
+      h('button', {class: 'dn', type: 'button', onclick: () => { closeDrawer(); if (S.log.length) exportLog(); else toast('Sem alterações para exportar.'); }}, svg(ICON.download, 20), h('span', {style: 'flex:1'}, 'Exportar alterações'), n ? h('span', {class: 'dpill'}, String(n)) : null),
+      h('button', {class: 'dn', type: 'button', onclick: () => { closeDrawer(); openAspect(); }}, svg(ICON.palette, 20), 'Aspeto')));
+  P.querySelector('.dlist').scrollTop = keep;
+}
+// deslizar a partir da borda esquerda abre o menu
+(function () {
+  let x0 = null, y0 = 0;
+  document.addEventListener('touchstart', e => { const t = e.touches[0]; x0 = t.clientX < 22 && !drawerEl ? t.clientX : null; y0 = t.clientY; }, {passive: true});
+  document.addEventListener('touchend', e => { if (x0 === null) return; const t = e.changedTouches[0]; const dx = t.clientX - x0, dy = t.clientY - y0; x0 = null; if (dx > 60 && Math.abs(dy) < 50) openDrawer(); }, {passive: true});
+})();
+
+/* Painel Inicial (a raiz): números, atenção, últimas alterações e pastas principais */
+function countUp(el, to) {
+  if (document.documentElement.classList.contains('no-anim') || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) { el.textContent = fmt(to); return; }
+  const t0 = performance.now(), dur = 380;
+  const step = now => { const t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 3); el.textContent = fmt(Math.round(to * e)); if (t < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function periodStart(p) {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  if (p === 'hoje') return d;
+  if (p === 'semana') { d.setDate(d.getDate() - 6); return d; }
+  if (p === 'mes') { d.setDate(d.getDate() - 29); return d; }
+  return null;
+}
+function periodCard() {
+  const per = S.period || 'semana', from = periodStart(per);
+  let inn = 0, out = 0, n = 0;
+  for (const e of S.log) {
+    if (e.tipo !== 'qtd') continue;
+    if (from && new Date(String(e.ts).replace(' ', 'T')) < from) continue;
+    const d = e.depois - e.antes; n++;
+    if (d > 0) inn += d; else out -= d;
+  }
+  const seg = h('div', {class: 'seg', role: 'group', 'aria-label': 'Período'},
+    ...[['hoje', 'Hoje'], ['semana', 'Semana'], ['mes', 'Mês'], ['tudo', 'Tudo']].map(([k, l]) =>
+      h('button', {type: 'button', 'aria-pressed': String(per === k), onclick: () => { S.period = k; render(true); }}, l)));
+  segSync(seg);
+  const m = (l, v, c) => h('div', null, h('span', null, l), h('b', {style: c ? 'color:var(--' + c + ')' : ''}, v));
+  return h('div', {class: 'period'}, h('div', {class: 'lbl'}, 'Movimento (alterações feitas neste telemóvel)'), seg,
+    S.log.length ? h('div', {class: 'mv'}, m('Entradas', '+' + fmt(inn), 'good'), m('Saídas', '−' + fmt(out), 'danger'), m('Alterações', fmt(n))) : h('div', {class: 'hint'}, 'Ainda sem alterações neste telemóvel.'));
+}
+function viewHome() {
+  const st = stats(S.inv);
+  const zero = allPieces().filter(p => p.qty === 0).sort((a, b) => cmp(display(a.key), display(b.key)));
+  const mains = Object.keys(S.inv).filter(k => isFolder(S.inv[k])).sort(cmp);
+  const big = h('b', null, fmt(enterAnim ? 0 : st.units));
+  const stat = (label, value, bad) => h('div', {class: 'stat3'}, h('span', null, label), h('b', {style: bad ? 'color:var(--danger)' : ''}, value));
+  const els = [
+    h('div', {class: 'big-total'}, h('span', null, 'Unidades em stock'), big, h('small', null, importadoHa() || 'Inventário')),
+    h('div', {class: 'stats3'}, stat('Pastas', fmt(st.folders)), stat('Peças', fmt(st.pieces)), stat('Sem stock', fmt(zero.length), zero.length > 0)),
+    periodCard(),
+    h('div', {class: 'h2'}, 'A precisar de atenção')];
+  if (!zero.length) els.push(h('div', {class: 'card hint', style: 'padding:16px'}, 'Tudo em ordem: nenhuma peça sem stock.'));
+  else {
+    els.push(h('div', {class: 'panel', style: 'padding:4px 16px'}, ...zero.slice(0, 8).map(p =>
+      h('button', {class: 'comp', type: 'button', style: 'width:100%;text-align:left;align-items:center', onclick: () => goToPiece(p)},
+        h('div', {class: 'tx'}, h('span', {class: 'nm'}, display(p.key)), h('small', null, p.path.slice(0, -1).join(' › ') || 'Raiz')),
+        h('div', {class: 'have', style: 'color:var(--danger);font-size:15px'}, '0 un.')))));
+    if (zero.length > 8) els.push(h('div', {class: 'hint'}, `e mais ${zero.length - 8} sem stock`));
+  }
+  els.push(h('div', {class: 'row', style: 'justify-content:space-between;align-items:baseline;flex-wrap:nowrap;margin-top:8px'},
+    h('div', {class: 'h2', style: 'margin:0'}, 'Últimas alterações'),
+    S.log.length ? h('button', {type: 'button', style: 'color:var(--accent);font-weight:600;font-size:13px', onclick: () => navTo({view: 'changes'})}, 'Ver histórico') : null));
+  if (!S.log.length) els.push(h('div', {class: 'card hint', style: 'padding:16px'}, 'Ainda sem alterações neste telemóvel.'));
+  else for (const e of S.log.slice(-5).reverse()) {
+    const isKit = e.tipo === 'kit', isRec = e.tipo === 'receita' || e.tipo === 'estrutura' || e.tipo === 'atributo', d = isKit ? -e.depois : isRec ? 0 : e.depois - e.antes;
+    els.push(h('button', {class: 'card chg', type: 'button', style: 'width:100%;text-align:left', onclick: () => navTo({view: 'changes'})},
+      h('div', {class: 'l1'}, h('span', {class: 'nm'}, (isKit ? 'Kit · ' : isRec ? recPrefix(e) : '') + e.item),
+        h('span', {class: 'delta ' + (d >= 0 ? 'up' : 'down')}, isRec ? recBadge(e) : isKit ? e.depois + ' kit(s)' : (d >= 0 ? '+' : '−') + Math.abs(d))),
+      h('div', {class: 'tm'}, `${e.ts.slice(8, 10)}/${e.ts.slice(5, 7)} ${e.ts.slice(11, 16)}`)));
+  }
+  els.push(h('div', {class: 'h2', style: 'margin-top:8px'}, 'Pastas principais'));
+  els.push(...(mains.length ? mains.map(k => folderCard([k])) : [h('div', {class: 'empty'}, 'O inventário está vazio.')]));
+  els.push(h('button', {class: 'btn gray block', type: 'button', onclick: () => flowNewFolder([])}, svg(ICON.plus, 18), 'Nova pasta principal'));
+  main.replaceChildren(...els);
+  if (enterAnim) countUp(big, st.units);
+}
+
+/* etiquetas e lotes: a lista e, ao tocar, as peças que os têm */
+function filterView(kind) {
+  const isLab = kind === 'labels';
+  const cur = isLab ? S.labelFilter : S.lotFilter;
+  const piecesWith = n => allPieces().filter(p => isLab ? (n in labelsOf(p.path)) : pieceLots(p.path).some(x => x[0] === n)).sort((a, b) => cmp(display(a.key), display(b.key)));
+  if (cur) {
+    const list = piecesWith(cur);
+    main.replaceChildren(
+      h('div', {class: 'row', style: 'align-items:center;justify-content:space-between;flex-wrap:nowrap'},
+        h('button', {class: 'crumb', type: 'button', onclick: () => { if (isLab) S.labelFilter = null; else S.lotFilter = null; render(); window.scrollTo(0, 0); }}, isLab ? '‹ Todas as etiquetas' : '‹ Todos os lotes'),
+        h('span', {class: 'chip ' + (isLab ? 'lab' : 'lot')}, isLab ? cur : 'Lote ' + cur)),
+      h('div', {class: 'hint'}, `${list.length} peça${list.length === 1 ? '' : 's'}`),
+      ...list.map(p => pieceCard(p, true)));
+    return;
+  }
+  const g = drawerGroups(), counts = isLab ? g.labels : g.lots;
+  const names = isLab ? Object.keys(S.labels.library).sort(cmp) : Object.keys(g.lots).sort(cmp);
+  if (!names.length) { main.replaceChildren(h('div', {class: 'empty'}, isLab ? 'Ainda não há etiquetas. Importe o tags.json do PC.' : 'Ainda não há lotes. Importe o tags.json do PC.')); return; }
+  main.replaceChildren(h('div', {class: 'hint'}, isLab ? 'Toque numa etiqueta para ver as peças.' : 'Toque num lote para ver as peças.'),
+    ...names.map(n => h('button', {class: 'card folder', type: 'button', onclick: () => { if (isLab) S.labelFilter = n; else S.lotFilter = n; render(); window.scrollTo(0, 0); }},
+      h('span', {class: 'tile', style: 'background:' + colorFor(n)}, svg(isLab ? ICON.tag : ICON.layers, 22)),
+      h('span', {class: 'f-txt'}, h('span', {class: 'f-name'}, isLab ? n : 'Lote ' + n),
+        h('span', {class: 'f-meta'}, `${counts[n] || 0} peça${(counts[n] || 0) === 1 ? '' : 's'}`)), svg(ICON.chev, 18))));
+}
+const viewLabels = () => filterView('labels');
+const viewLots = () => filterView('lots');
+
+/* ---------- estrutura: criar, renomear, mover, copiar e apagar pastas e peças (as mesmas regras do PC) ---------- */
+const ESTR = {criar: 'criada', renomear: 'renomeada', mover: 'movida', copiar: 'copiada', apagar: 'apagada', editar: 'editada'};
+const recBadge = e => e.tipo === 'atributo' ? 'alterada' : e.tipo === 'estrutura' ? (ESTR[e.acao] || 'estrutura') : (ESTR[e.receita && e.receita.acao] || 'receita');
+const recPrefix = e => e.tipo === 'atributo' ? (ATTR_PREFIX[e.alvo] || '') : e.tipo === 'estrutura' ? (e.alvo === 'pasta' ? 'Pasta · ' : 'Peça · ') : 'Receita · ';
+function genKey(parent, name) {   // 'Nome', ou 'Nome::ID::n' se já existir (igual ao PC)
+  if (!(name in parent)) return name;
+  let i = 1; while ((name + SEP + i) in parent) i++;
+  return name + SEP + i;
+}
+const hasFolderNamed = (parent, name) => Object.entries(parent).some(([k, v]) => isFolder(v) && k.toLowerCase() === name.toLowerCase());
+const hasPieceNamed = (parent, name, except) => Object.entries(parent).some(([k, v]) => !isFolder(v) && k !== except && display(k).toLowerCase() === name.toLowerCase());
+const cleanName = s => { s = String(s == null ? '' : s).trim(); return s && !/\n|::ID::/.test(s) ? s : ''; };
+function saveAll() { save(K.inv, S.inv); save(K.tags, S.tags); save(K.labels, S.labels); save(K.lots, S.lots); save(K.kits, S.kits); save(K.log, S.log); }
+const snapAll = () => JSON.stringify({inv: S.inv, tags: S.tags, labels: S.labels, lots: S.lots, kits: S.kits});
+function restoreAll(str) {
+  const o = JSON.parse(str);
+  S.inv = o.inv; S.tags = o.tags; S.labels = o.labels; S.lots = o.lots; S.kits = o.kits; kitIdx = null;
+}
+// as tags, etiquetas, lotes e receitas seguem o caminho (porta de _update_tag_paths_on_prefix e _prefix_kit_refs do PC)
+function remapPrefix(oldP, newP, copy) {
+  const oldK = pkey(oldP), newK = newP ? pkey(newP) : null;
+  const hit = k => k === oldK || k.startsWith(oldK + '\n');
+  const cl = v => JSON.parse(JSON.stringify(v));
+  for (const store of [S.labels.assignments, S.lots, S.tags.assignments]) {
+    for (const k of Object.keys(store)) {
+      if (!hit(k)) continue;
+      const v = store[k];
+      if (!copy) delete store[k];
+      if (newK !== null) store[newK + k.slice(oldK.length)] = cl(v);
+    }
+  }
+  if (newK !== null && !copy) {
+    for (const kit of Object.values(S.kits)) for (const c of kit.componentes) {
+      if (c.tipo !== 'kit' && hit(c.caminho || '')) c.caminho = newK + c.caminho.slice(oldK.length);
+    }
+  }
+  kitIdx = null;
+}
+const underPath = (p, base) => p.length >= base.length && base.every((s, i) => p[i] === s);
+
+// executa uma operação; devolve {err} ou {entry}
+function structDo(op) {
+  const isF = op.alvo === 'pasta', before = snapAll();
+  const par = op.de ? op.de.slice(0, -1) : null, key = op.de ? op.de[op.de.length - 1] : null;
+  let entry = {alvo: isF ? 'pasta' : 'peca', acao: op.acao}, text = '', itemName = '', parentShown = [];
+  try {
+    if (op.acao === 'criar') {
+      const name = cleanName(op.nome);
+      if (!name) return {err: 'Escreva um nome válido.'};
+      const dest = op.para.length ? getNode(op.para) : S.inv;
+      if (!isFolder(dest)) return {err: 'A pasta de destino já não existe.'};
+      if (isF) {
+        if (name in dest || hasPieceNamed(dest, name)) return {err: `Já existe «${name}» nessa pasta.`};
+        dest[name] = {};
+        text = `pasta criada: ${name}`;
+      } else {
+        if (!op.para.length) return {err: 'As peças ficam dentro de uma pasta.'};
+        if (hasFolderNamed(dest, name) || hasPieceNamed(dest, name)) return {err: `Já existe «${name}» nessa pasta.`};
+        if (!(Number.isInteger(op.qtd) && op.qtd >= 0)) return {err: 'A quantidade tem de ser um número inteiro (0 ou mais).'};
+        dest[genKey(dest, name)] = op.qtd;
+        entry.qtd = op.qtd; text = `peça criada: ${name} (${op.qtd} un.)`;
+      }
+      Object.assign(entry, {para: op.para.slice(), nome: name}); itemName = name; parentShown = op.para;
+    } else {
+      const parent = par.length ? getNode(par) : S.inv;
+      if (!isFolder(parent) || !(key in parent) || isFolder(parent[key]) !== isF) return {err: 'O item já não existe.'};
+      itemName = isF ? key : display(key); parentShown = par;
+      if (op.acao === 'renomear') {
+        const name = cleanName(op.nome);
+        if (!name) return {err: 'Escreva um nome válido.'};
+        if (name === itemName) return {err: 'O nome é igual ao atual.'};
+        if (isF) {
+          if (name in parent || hasPieceNamed(parent, name)) return {err: `Já existe «${name}» nessa pasta.`};
+          parent[name] = parent[key]; delete parent[key];
+          remapPrefix(op.de, par.concat(name), false);
+        } else {
+          if (hasFolderNamed(parent, name) || hasPieceNamed(parent, name, key)) return {err: `Já existe «${name}» nessa pasta.`};
+          const val = parent[key]; delete parent[key];
+          const nk = genKey(parent, name); parent[nk] = val;
+          remapPrefix(op.de, par.concat(nk), false);
+        }
+        Object.assign(entry, {de: op.de.slice(), nome: name}); text = `${itemName} → ${name}`;
+      } else if (op.acao === 'mover' || op.acao === 'copiar') {
+        const copy = op.acao === 'copiar', dest = op.para.length ? getNode(op.para) : S.inv;
+        if (!isFolder(dest)) return {err: 'A pasta de destino já não existe.'};
+        if (!isF && !op.para.length) return {err: 'As peças ficam dentro de uma pasta.'};
+        if (!copy && pkey(op.para) === pkey(par)) return {err: 'Já está nessa pasta.'};
+        if (isF && underPath(op.para, op.de)) return {err: 'Não se pode pôr uma pasta dentro dela própria.'};
+        if (isF) {
+          if (key in dest || hasPieceNamed(dest, key)) return {err: `Já existe «${key}» no destino.`};
+          dest[key] = copy ? JSON.parse(JSON.stringify(parent[key])) : parent[key];
+          if (!copy) delete parent[key];
+          remapPrefix(op.de, op.para.concat(key), copy);
+        } else {
+          const d = display(key);
+          if (hasFolderNamed(dest, d) || hasPieceNamed(dest, d)) return {err: `Já existe «${d}» no destino. Renomeie primeiro.`};
+          const nk = genKey(dest, d); dest[nk] = parent[key];
+          if (!copy) delete parent[key];
+          remapPrefix(op.de, op.para.concat(nk), copy);
+        }
+        Object.assign(entry, {de: op.de.slice(), para: op.para.slice(), nome: itemName});
+        text = `${copy ? 'copiado' : 'movido'} para ${op.para.join(' › ') || 'a raiz'}`;
+      } else if (op.acao === 'apagar') {
+        if (isF) { const st = stats(parent[key]); entry.resumo = {pecas: st.pieces, unidades: st.units}; text = `pasta apagada: ${itemName} (${st.pieces} peça(s), ${st.units} un.)`; }
+        else { entry.qtd = Number(parent[key]) || 0; text = `peça apagada: ${itemName} (${entry.qtd} un.)`; }
+        delete parent[key];
+        remapPrefix(op.de, null, false);
+        Object.assign(entry, {de: op.de.slice(), nome: itemName});
+      } else return {err: 'Operação desconhecida.'};
+    }
+  } catch (e) { restoreAll(before); return {err: 'Não foi possível fazer isto.'}; }
+  entry = Object.assign({ts: nowStr(), tipo: 'estrutura', item: itemName, caminho: parentShown.join(' > '), antes: null,
+    depois: entry.qtd !== undefined && op.acao === 'criar' ? entry.qtd : null, detalhe: text, nota: '', origem: 'telemovel', id: newId()}, entry);
+  // se estavamos dentro da pasta que mudou, o caminho acompanha
+  if (isF && op.de && underPath(S.path, op.de)) {
+    if (op.acao === 'apagar') S.path = op.de.slice(0, -1);
+    else if (op.acao !== 'copiar') {
+      const novo = op.acao === 'renomear' ? par.concat(entry.nome) : op.para.concat(key);
+      S.path = novo.concat(S.path.slice(op.de.length));
+    }
+  }
+  S.exp = new Set();
+  S.log.push(entry);
+  saveAll();
+  lastChange = {snap: [], entries: [entry], all: before};
+  return {entry};
+}
+function runStruct(op, msg) {
+  const r = structDo(op);
+  if (r.err) { toast(r.err); return false; }
+  toast(msg, {label: 'Desfazer', fn: undo});
+  render(true);
+  return true;
+}
+
+/* caixas de escrita e escolha de pasta */
+function askText({title, sub, value = '', placeholder = '', ok = 'Guardar', numeric = false}) {
+  return new Promise(res => {
+    let done = false;
+    const finish = v => { if (!done) { done = true; res(v); } };
+    const input = h('input', {class: numeric ? 'field' : 'field sm', type: 'text', autocomplete: 'off', autocapitalize: 'sentences', maxlength: numeric ? 7 : 80, placeholder, 'aria-label': title, value});
+    if (numeric) { input.setAttribute('inputmode', 'numeric'); input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, ''); }); }
+    const go = () => { finish(input.value); close(); };
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    const close = openSheet([
+      h('div', null, h('h3', null, title), sub ? h('div', {class: 'sub'}, sub) : null), input,
+      h('div', {class: 'row'}, h('button', {class: 'btn gray', type: 'button', onclick: () => close()}, 'Cancelar'), h('button', {class: 'btn green', type: 'button', onclick: go}, ok))
+    ], () => finish(null));
+    setTimeout(() => { input.focus(); input.select(); }, 80);
+  });
+}
+function pickFolder({title, sub, exclude, allowRoot, current}) {
+  return new Promise(res => {
+    let done = false;
+    const finish = v => { if (!done) { done = true; res(v); } };
+    const curK = current ? pkey(current) : null, rows = [];
+    const row = (path, label, depth) => {
+      const bad = pkey(path) === curK && current != null;
+      return h('button', {class: 'pick', type: 'button', disabled: bad, style: `padding-left:${10 + depth * 18}px`, onclick: () => { finish(path); close(); }},
+        h('span', {class: 'dsq', style: 'background:' + (path.length ? colorFor(path[0]) : 'var(--muted)')}), h('span', {style: 'flex:1;overflow-wrap:anywhere'}, label), bad ? h('small', {style: 'color:var(--muted)'}, 'aqui') : null);
+    };
+    if (allowRoot) rows.push(row([], 'Raiz (pasta principal)', 0));
+    (function walk(node, path, depth) {
+      for (const k of Object.keys(node).filter(x => isFolder(node[x])).sort(cmp)) {
+        const p = path.concat(k);
+        if (exclude && underPath(p, exclude)) continue;
+        rows.push(row(p, k, depth + (allowRoot ? 1 : 0)));
+        walk(node[k], p, depth + 1);
+      }
+    })(S.inv, [], 0);
+    const close = openSheet([
+      h('div', null, h('h3', null, title), sub ? h('div', {class: 'sub'}, sub) : null),
+      rows.length ? h('div', {class: 'panel', style: 'max-height:52vh;overflow:auto;padding:6px 8px'}, ...rows) : h('div', {class: 'hint'}, 'Ainda não há pastas.'),
+      h('button', {class: 'btn gray block', type: 'button', onclick: () => close()}, 'Cancelar')
+    ], () => finish(null));
+  });
+}
+
+/* fluxos (o que o utilizador faz) */
+async function flowNewFolder(parentPath) {
+  const name = await askText({title: parentPath.length ? 'Nova subpasta' : 'Nova pasta principal', sub: parentPath.length ? `Em «${parentPath[parentPath.length - 1]}»` : null, placeholder: 'Nome da pasta', ok: 'Criar'});
+  if (name === null) return;
+  if (runStruct({acao: 'criar', alvo: 'pasta', para: parentPath, nome: name}, `Pasta «${name.trim()}» criada.`) && !parentPath.length) { S.view = 'folders'; S.path = [name.trim()]; render(); window.scrollTo(0, 0); }
+}
+async function flowNewPiece(folderPath) {
+  const name = await askText({title: 'Adicionar peça', sub: `Em «${folderPath[folderPath.length - 1]}»`, value: folderPath[folderPath.length - 1] + ' ', placeholder: 'Nome da peça', ok: 'Seguinte'});
+  if (name === null) return;
+  const nm = cleanName(name);
+  if (!nm) { toast('Escreva um nome válido.'); return; }
+  const node = getNode(folderPath);
+  if (isFolder(node) && (hasFolderNamed(node, nm) || hasPieceNamed(node, nm))) { toast(`Já existe «${nm}» nessa pasta.`); return; }
+  const q = await askText({title: 'Quantidade inicial', sub: nm, value: '1', numeric: true, ok: 'Criar'});
+  if (q === null) return;
+  runStruct({acao: 'criar', alvo: 'peca', para: folderPath, nome: nm, qtd: q === '' ? NaN : parseInt(q, 10)}, `Peça «${nm}» criada.`);
+}
+async function flowRename(path, isF) {
+  const cur = isF ? path[path.length - 1] : display(path[path.length - 1]);
+  const name = await askText({title: isF ? 'Renomear pasta' : 'Renomear peça', sub: cur, value: cur, ok: 'Renomear'});
+  if (name === null) return;
+  runStruct({acao: 'renomear', alvo: isF ? 'pasta' : 'peca', de: path, nome: name}, `Renomeada para «${name.trim()}».`);
+}
+async function flowMove(path, isF, copy) {
+  const cur = isF ? path[path.length - 1] : display(path[path.length - 1]);
+  const dest = await pickFolder({title: `${copy ? 'Copiar' : 'Mover'} «${cur}» para...`, sub: 'Escolha a pasta de destino', exclude: isF ? path : null, allowRoot: isF, current: copy ? null : path.slice(0, -1)});
+  if (dest === null) return;
+  runStruct({acao: copy ? 'copiar' : 'mover', alvo: isF ? 'pasta' : 'peca', de: path, para: dest}, `«${cur}» ${copy ? 'copiada' : 'movida'} para ${dest.join(' › ') || 'a raiz'}.`);
+}
+async function flowDelete(path, isF) {
+  const cur = isF ? path[path.length - 1] : display(path[path.length - 1]), node = getNode(path.slice(0, -1));
+  const st = isF ? stats(node[path[path.length - 1]]) : null;
+  const ok = await ask({title: isF ? 'Apagar pasta?' : 'Apagar peça?', danger: true, ok: 'Apagar',
+    text: isF ? `Apagar a pasta «${cur}» e tudo o que tem lá dentro (${st.pieces} peça${st.pieces === 1 ? '' : 's'}, ${st.units} un.)?` : `Apagar a peça «${cur}»?`});
+  if (!ok) return;
+  runStruct({acao: 'apagar', alvo: isF ? 'pasta' : 'peca', de: path}, `«${cur}» apagada.`);
+}
+function openFolderMenu(path) {
+  const item = (icon, label, fn, danger) => h('button', {class: 'menu-item', type: 'button', style: danger ? 'color:var(--danger)' : '', onclick: () => { close(); fn(); }}, svg(ICON[icon]), h('span', null, label));
+  const close = openSheet([
+    h('div', null, h('h3', null, path[path.length - 1]), h('div', {class: 'sub'}, path.slice(0, -1).join(' › ') || 'Pasta principal')),
+    item('edit', 'Renomear', () => flowRename(path, true)),
+    item('move', 'Mover', () => flowMove(path, true, false)),
+    item('copy', 'Copiar', () => flowMove(path, true, true)),
+    item('trash', 'Apagar', () => flowDelete(path, true), true)
+  ]);
+}
+
+/* ---------- atributos da peça: tag, etiquetas e lotes ---------- */
+const ATTR_PREFIX = {tag: 'Tag · ', etiquetas: 'Etiquetas · ', lotes: 'Lotes · '};
+function attrCommit(alvo, path, antes, depois, texto, extra, before) {   // 'before' = fotografia tirada ANTES de mexer nos dados
+  const entry = Object.assign({ts: nowStr(), tipo: 'atributo', alvo, acao: 'definir', item: display(path[path.length - 1]), caminho: path.slice(0, -1).join(' > '),
+    antes: null, depois: null, detalhe: texto, nota: '', origem: 'telemovel', id: newId(), de: path.slice(), valor_antes: antes, valor_depois: depois}, extra || {});
+  S.log.push(entry);
+  lastChange = {snap: [], entries: [entry], all: before};
+  return entry;
+}
+function attrDone(msg) { saveAll(); kitIdx = null; toast(msg, {label: 'Desfazer', fn: undo}); render(true); }
+
+async function flowTag(path) {
+  const key = pkey(path), cur = tagOf(path);
+  const opts = [{label: 'Sem tag', value: null}, ...S.tags.library.map(t => ({label: t + (t === cur ? '  ✓' : ''), value: t})), {label: '+ Nova tag...', value: '__nova__'}];
+  let v = await chooseSheet('Tag de «' + display(path[path.length - 1]) + '»', cur ? 'Atual: ' + cur : 'Sem tag', opts);
+  if (v === undefined) return;
+  let nova = false;
+  if (v === '__nova__') {
+    const n = await askText({title: 'Nova tag', placeholder: 'Nome da tag', ok: 'Criar'});
+    if (n === null) return;
+    v = cleanName(n);
+    if (!v) { toast('Escreva um nome válido.'); return; }
+    const ex = S.tags.library.find(t => t.toLowerCase() === v.toLowerCase());
+    if (ex) v = ex; else nova = true;
+  }
+  if (v === cur) return;
+  const before = snapAll();
+  if (nova) S.tags.library.push(v);
+  if (v) S.tags.assignments[key] = v; else delete S.tags.assignments[key];
+  attrCommit('tag', path, cur, v, v ? `tag: ${v}` : 'tag retirada', null, before);
+  attrDone(v ? `Tag «${v}» atribuída.` : 'Tag retirada.');
+}
+
+function flowLabels(path) {
+  const key = pkey(path), name = display(path[path.length - 1]);
+  const antes = Object.assign({}, S.labels.assignments[key] || {});
+  const cur = Object.assign({}, antes);          // nome -> valor das etiquetas ligadas
+  const novas = {};
+  const lib = () => Object.assign({}, S.labels.library, novas);
+  const box = h('div');
+  function draw() {
+    const names = Object.keys(lib()).sort(cmp);
+    box.replaceChildren(...(names.length ? names.map(n => {
+      const on = n in cur, tipo = lib()[n].tipo;
+      const row = h('div', {class: 'xrow'},
+        h('button', {type: 'button', class: 'switch-row', role: 'switch', 'aria-checked': String(on), onclick: () => { if (on) delete cur[n]; else cur[n] = ''; draw(); }},
+          h('span', null, h('b', null, n), h('small', null, tipo === 'valor' ? 'com valor' : 'só marcar')), h('span', {class: 'switch' + (on ? ' on' : '')})));
+      if (on && tipo === 'valor') {
+        const inp = h('input', {class: 'field sm', type: 'text', autocomplete: 'off', maxlength: 60, placeholder: 'Valor (ex.: L-77)', value: cur[n], 'aria-label': 'Valor de ' + n});
+        inp.addEventListener('input', () => { cur[n] = inp.value; });
+        row.append(inp);
+      }
+      return row;
+    }) : [h('div', {class: 'hint', style: 'padding:10px 0'}, 'Ainda não há etiquetas. Crie a primeira.')]));
+  }
+  draw();
+  const close = openSheet([
+    h('div', null, h('h3', null, 'Etiquetas'), h('div', {class: 'sub'}, name)),
+    box,
+    h('button', {class: 'btn gray block', type: 'button', onclick: async () => {
+      const n0 = await askText({title: 'Nova etiqueta', placeholder: 'Nome da etiqueta', ok: 'Seguinte'});
+      if (n0 === null) return;
+      const n = cleanName(n0);
+      if (!n) { toast('Escreva um nome válido.'); return; }
+      if (Object.keys(lib()).some(x => x.toLowerCase() === n.toLowerCase())) { toast(`Já existe a etiqueta «${n}».`); return; }
+      const tipo = await chooseSheet('Que tipo de etiqueta?', n, [{label: 'Só marcar', sub: 'liga ou desliga (ex.: Frágil)', value: 'livre'}, {label: 'Com valor', sub: 'um texto por peça (ex.: Lote do fornecedor)', value: 'valor'}]);
+      if (tipo === undefined) return;
+      novas[n] = {tipo}; cur[n] = ''; draw();
+    }}, svg(ICON.plus, 18), 'Nova etiqueta'),
+    h('div', {class: 'row'}, h('button', {class: 'btn gray', type: 'button', onclick: () => close()}, 'Cancelar'),
+      h('button', {class: 'btn green', type: 'button', onclick: () => {
+        const depois = {}; for (const n of Object.keys(cur)) depois[n] = lib()[n].tipo === 'valor' ? String(cur[n] || '').trim() : '';
+        const same = JSON.stringify(Object.entries(depois).sort()) === JSON.stringify(Object.entries(antes).sort());
+        if (same && !Object.keys(novas).length) { close(); return; }
+        const before = snapAll();
+        Object.assign(S.labels.library, novas);
+        if (Object.keys(depois).length) S.labels.assignments[key] = depois; else delete S.labels.assignments[key];
+        const txt = Object.entries(depois).map(([n, v]) => v ? `${n} ${v}` : n).join(', ') || 'nenhuma';
+        attrCommit('etiquetas', path, antes, depois, 'etiquetas: ' + txt, {nova_lib: novas}, before);
+        close(); attrDone('Etiquetas guardadas.');
+      }}, 'Guardar'))
+  ]);
+}
+
+function flowLots(path) {
+  const key = pkey(path), name = display(path[path.length - 1]), total = pieceQty(key);
+  const antes = pieceLots(path).map(x => x.slice());
+  let rows = antes.map(x => x.slice());
+  const box = h('div'), msg = h('div', {class: 'preview'});
+  function draw() {
+    const sum = rows.reduce((a, x) => a + (x[1] || 0), 0), free = total - sum;
+    box.replaceChildren(...(rows.length ? rows.map((r, i) => {
+      const inp = h('input', {class: 'field', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', value: String(r[1]), 'aria-label': 'Quantidade do lote ' + r[0], style: 'width:92px;height:46px;font-size:18px'});
+      inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 7); r[1] = parseInt(inp.value, 10) || 0; upd(); });
+      return h('div', {class: 'xrow', style: 'grid-template-columns:1fr auto auto;align-items:center;display:grid;gap:10px'}, h('b', null, 'Lote ' + r[0]), inp,
+        h('button', {type: 'button', class: 'icon-btn', style: 'width:40px;height:40px;color:var(--danger)', 'aria-label': 'Tirar o lote ' + r[0], onclick: () => { rows.splice(i, 1); draw(); }}, svg('<path d="M6 6l12 12M18 6L6 18"/>', 18)));
+    }) : [h('div', {class: 'hint', style: 'padding:10px 0'}, 'Esta peça não tem lotes: todo o stock está "sem lote".')]));
+    upd();
+  }
+  function upd() {
+    const sum = rows.reduce((a, x) => a + (x[1] || 0), 0), free = total - sum;
+    msg.className = 'preview' + (free < 0 ? ' warn' : '');
+    msg.replaceChildren(`Total ${total} un. · ${rows.length ? 'em lotes ' + sum + ' · ' : ''}sem lote `, h('b', null, free < 0 ? '0' : free), free < 0 ? ` — passa ${-free} do total` : '');
+    okBtn.disabled = free < 0;
+  }
+  const okBtn = h('button', {class: 'btn green', type: 'button', onclick: () => {
+    const depois = rows.filter(r => r[1] > 0).map(r => r.slice());
+    if (JSON.stringify(depois) === JSON.stringify(antes)) { close(); return; }
+    const before = snapAll();
+    if (depois.length) S.lots[key] = depois; else delete S.lots[key];
+    const txt = depois.map(([n, q]) => `${n}: ${q}`).join(', ') || 'nenhum';
+    attrCommit('lotes', path, antes, depois, 'lotes: ' + txt, null, before);
+    close(); attrDone('Lotes guardados.');
+  }}, 'Guardar');
+  draw();
+  const close = openSheet([
+    h('div', null, h('h3', null, 'Lotes'), h('div', {class: 'sub'}, name + ' · do mais antigo para o mais novo')),
+    box, msg,
+    h('button', {class: 'btn gray block', type: 'button', onclick: async () => {
+      const n0 = await askText({title: 'Novo lote', sub: name, placeholder: 'Nome do lote (ex.: A-24)', ok: 'Juntar'});
+      if (n0 === null) return;
+      const n = cleanName(n0);
+      if (!n) { toast('Escreva um nome válido.'); return; }
+      if (rows.some(r => r[0].toLowerCase() === n.toLowerCase())) { toast(`Já existe o lote «${n}».`); return; }
+      const free = total - rows.reduce((a, x) => a + x[1], 0);
+      rows.push([n, Math.max(0, free)]); draw();
+    }}, svg(ICON.plus, 18), 'Novo lote'),
+    h('div', {class: 'row'}, h('button', {class: 'btn gray', type: 'button', onclick: () => close()}, 'Cancelar'), okBtn)
+  ]);
+}
+
+/* ---------- Overview, backup completo e CSV ---------- */
+S.ov = {q: '', main: '', tag: '', label: '', lot: '', kit: '', zero: false, sort: 'nome'};
+function ovFilter() {
+  const o = S.ov, toks = queryTokens(o.q);
+  const list = allPieces().filter(p => {
+    if (o.main && p.path[0] !== o.main) return false;
+    if (o.tag && tagOf(p.path) !== o.tag) return false;
+    if (o.label && !(o.label in labelsOf(p.path))) return false;
+    if (o.lot && !pieceLots(p.path).some(x => x[0] === o.lot)) return false;
+    if (o.kit && !kitsUsingPiece(pkey(p.path)).some(x => x[0] === o.kit)) return false;
+    if (o.zero && p.qty !== 0) return false;
+    if (toks.length) {
+      const hs = haystack(p.path.map(display).join(' ') + ' ' + (tagOf(p.path) || '') + ' ' + labelChipTexts(p.path).join(' ') + ' ' + pieceLots(p.path).map(x => 'Lote ' + x[0]).join(' '));
+      if (!toks.every(t => hs.includes(t))) return false;
+    }
+    return true;
+  });
+  list.sort((a, b) => o.sort === 'qtd_up' ? a.qty - b.qty : o.sort === 'qtd_down' ? b.qty - a.qty : cmp(display(a.key), display(b.key)) || cmp(a.path.join('/'), b.path.join('/')));
+  return list;
+}
+function viewOverview() {
+  const o = S.ov;
+  const mains = Object.keys(S.inv).filter(k => isFolder(S.inv[k])).sort(cmp);
+  const g = drawerGroups();
+  const sel = (label, key, values, show) => { if (show === false) return null;
+    const el = h('select', {class: 'sel', 'aria-label': label}, h('option', {value: ''}, label + ': todos'), ...values.map(v => h('option', Object.assign({value: v}, o[key] === v ? {selected: true} : {}), v)));
+    el.addEventListener('change', () => { o[key] = el.value; renderList(); }); return el; };
+  const q = h('input', {class: 'field sm', type: 'search', placeholder: 'Filtrar peças...', 'aria-label': 'Filtrar peças', value: o.q});
+  q.addEventListener('input', () => { o.q = q.value; renderList(); });
+  const sort = h('select', {class: 'sel', 'aria-label': 'Ordenar'}, ...[['nome', 'Ordenar: nome'], ['qtd_up', 'Ordenar: menos stock primeiro'], ['qtd_down', 'Ordenar: mais stock primeiro']].map(([k, l]) => h('option', Object.assign({value: k}, o.sort === k ? {selected: true} : {}), l)));
+  sort.addEventListener('change', () => { o.sort = sort.value; renderList(); });
+  const zero = h('button', {type: 'button', class: 'switch-row', role: 'switch', 'aria-checked': String(o.zero), onclick: () => { o.zero = !o.zero; zero.setAttribute('aria-checked', String(o.zero)); zero.querySelector('.switch').classList.toggle('on', o.zero); renderList(); }},
+    h('span', null, h('b', null, 'Só peças sem stock')), h('span', {class: 'switch' + (o.zero ? ' on' : '')}));
+  const info = h('div', {class: 'hint'}), box = h('div', {class: 'panel'});
+  function renderList() {
+    const list = ovFilter(), units = list.reduce((a, p) => a + p.qty, 0);
+    info.textContent = `${fmt(list.length)} peça${list.length === 1 ? '' : 's'} · ${fmt(units)} un.`;
+    box.replaceChildren(...(list.length ? list.slice(0, 300).map(p => {
+      const extra = [tagOf(p.path), ...(modOn('lots') ? pieceLots(p.path).map(x => 'Lote ' + x[0]) : [])].filter(Boolean).join(' · ');
+      return h('button', {class: 'comp', type: 'button', style: 'width:100%;text-align:left;align-items:center', onclick: () => openPiece(p.path)},
+        h('div', {class: 'tx'}, h('span', {class: 'nm'}, display(p.key)), h('small', null, p.path.slice(0, -1).join(' › ') + (extra ? ' · ' + extra : ''))),
+        h('div', {class: 'have', style: `color:var(--${p.qty === 0 ? 'danger' : 'good'});font-size:15px`}, fmt(p.qty)));
+    }) : [h('div', {class: 'hint', style: 'padding:14px 0'}, 'Nenhuma peça com estes filtros.')]));
+    if (list.length > 300) box.append(h('div', {class: 'hint', style: 'padding:10px 0'}, `A mostrar 300 de ${fmt(list.length)}. Afine os filtros.`));
+  }
+  renderList();
+  main.replaceChildren(h('h2', {class: 'ptitle'}, 'Overview'),
+    q, h('div', {class: 'fgrid'}, sel('Pasta', 'main', mains), sel('Tag', 'tag', S.tags.library, modOn('tags')), sel('Etiqueta', 'label', Object.keys(S.labels.library).sort(cmp), modOn('labels')),
+      sel('Lote', 'lot', Object.keys(g.lots).sort(cmp), modOn('lots')), sel('Kit', 'kit', kitNames(), modOn('kits')), sort),
+    zero, info, box,
+    h('button', {class: 'btn gray block', type: 'button', onclick: () => exportCsv(ovFilter())}, svg(ICON.download, 18), 'Exportar esta lista (CSV)'));
+}
+
+function csvCell(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+function exportCsv(list) {
+  const rows = [['Pasta', 'Peça', 'Quantidade', 'Tag', 'Etiquetas', 'Lotes', 'Kits']];
+  const pcs = list || allPieces().sort((a, b) => cmp(a.path.join('/'), b.path.join('/')));
+  for (const p of pcs) rows.push([p.path.slice(0, -1).join(' > '), display(p.key), p.qty, tagOf(p.path) || '', labelChipTexts(p.path).join('; '),
+    pieceLots(p.path).map(x => x[0] + ': ' + x[1]).join('; '), kitsUsingPiece(pkey(p.path)).map(x => x[0] + ' ×' + x[1]).join('; ')]);
+  download('inventario.csv', '﻿' + rows.map(r => r.map(csvCell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+  toast(`Exportado: ${rows.length - 1} peça${rows.length === 2 ? '' : 's'} em CSV (abre no Excel).`);
+}
+function backupAll() {
+  const d = {gest_backup: 1, app: 'Gest', criado: nowStr(), dados: {inv: S.inv, base: S.base, tags: S.tags, labels: S.labels, lots: S.lots, kits: S.kits, log: S.log, meta: S.meta,
+    baseLots: S.baseLots, baseKits: S.baseKits, baseTags: S.baseTags, baseLabels: S.baseLabels}};
+  download(`gest_backup_${nowStr().slice(0, 10)}.json`, JSON.stringify(d));
+  toast('Backup completo guardado. Guarde o ficheiro num sítio seguro.');
+}
+async function restoreBackup(d) {
+  const x = d.dados || {};
+  if (!validInv(x.inv)) { toast('Este backup não parece válido.'); return; }
+  const ok = await ask({title: 'Restaurar o backup?', danger: true, ok: 'Restaurar',
+    text: `Tudo o que está neste telemóvel (inventário, tags, etiquetas, lotes, receitas e histórico) é substituído pelo backup de ${d.criado || 'data desconhecida'}.`});
+  if (!ok) return;
+  const cl = o => JSON.parse(JSON.stringify(o));
+  S.inv = x.inv; S.base = isFolder(x.base) ? x.base : cl(x.inv);
+  S.tags = x.tags && Array.isArray(x.tags.library) ? x.tags : {library: [], assignments: {}};
+  S.labels = x.labels && x.labels.library ? x.labels : {library: {}, assignments: {}};
+  S.lots = x.lots || {}; S.kits = x.kits || {}; S.log = Array.isArray(x.log) ? x.log : []; S.meta = x.meta || {importedAt: null, exportedLen: 0};
+  S.baseLots = x.baseLots || cl(S.lots); S.baseKits = x.baseKits || cl(S.kits); S.baseTags = x.baseTags || cl(S.tags); S.baseLabels = x.baseLabels || cl(S.labels);
+  S.path = []; S.view = 'folders'; S.tagFilter = S.labelFilter = S.lotFilter = S.kit = null; S.edit = null; kitIdx = null; lastChange = null;
+  save(K.base, S.base); save(K.meta, S.meta); save(K.baselots, S.baseLots); save(K.basekits, S.baseKits); save(K.basetags, S.baseTags); save(K.baselabels, S.baseLabels); saveAll();
+  toast('Backup restaurado.'); render(); window.scrollTo(0, 0);
+}
+
+/* barra de baixo: os quatro sítios mais usados; "Explorar" abre o menu lateral (pastas, tags, etiquetas e lotes) */
+async function tabGo(id) { if (id === 'explore') { openDrawer(); return; } navTo(id === 'home' ? {view: 'folders'} : {view: id}); }
 function renderTabs() {
-  const box = document.getElementById('tabs');
-  box.replaceChildren(...TABS.map(([id, label, icon]) => {
-    const b = h('button', {class: 'tab', type: 'button', 'aria-current': S.view === id && !S.query.trim() ? 'page' : null,
-      onclick: async () => { if (!(await leaveEdit())) return; S.view = id; if (id !== 'tags') S.tagFilter = null; S.kit = null; clearSearch(false); render(); window.scrollTo(0, 0); }}, svg(ICON[icon], 22), label);
+  const box = document.getElementById('tabs'), ind = document.getElementById('ind');
+  if (!S.inv) { box.replaceChildren(); ind.hidden = true; return; }
+  const items = [['home', 'Início', 'home'], ['explore', 'Explorar', 'folder'], ...(modOn('kits') ? [['kits', 'Kits', 'kit']] : []), ['changes', 'Histórico', 'history']];
+  const active = S.query.trim() ? null : S.view === 'changes' ? 'changes' : S.view === 'kits' ? 'kits' : (S.view === 'folders' && !S.path.length) ? 'home' : 'explore';
+  box.replaceChildren(...items.map(([id, label, icon]) => {
+    const b = h('button', {class: 'tab', type: 'button', 'aria-current': active === id ? 'page' : null, onclick: () => tabGo(id)}, svg(ICON[icon], 22), label);
     if (id === 'changes' && pending() > 0) b.append(h('span', {class: 'pill'}, pending()));
     return b;
   }));
+  const idx = items.findIndex(x => x[0] === active);
+  ind.hidden = false; ind.style.width = (100 / items.length) + '%'; ind.style.opacity = idx < 0 ? '0' : '1'; if (idx >= 0) ind.style.setProperty('--i', idx);
 }
 function clearSearch(doRender = true) {
   S.query = ''; const q = document.getElementById('q'); q.value = ''; document.getElementById('q-clear').hidden = true;
@@ -1249,7 +2172,10 @@ function importadoHa() {
 }
 function render(keepScroll) {
   const y = window.scrollY;
+  enterAnim = !keepScroll;
+  document.body.classList.toggle('onb', !S.inv);
   renderTabs();
+  if (drawerEl) renderDrawer();
   const sub = document.getElementById('subtitle');
   if (!S.inv) { sub.textContent = 'Inventário'; viewWelcome(); return; }
   const st = stats(S.inv);
@@ -1258,10 +2184,13 @@ function render(keepScroll) {
   if (S.query.trim()) viewSearch();
   else if (S.view === 'tags') viewTags();
   else if (S.view === 'kits') viewKits();
-  else if (S.view === 'summary') viewSummary();
+  else if (S.view === 'overview') viewOverview();
+  else if (S.view === 'labels') viewLabels();
+  else if (S.view === 'lots') viewLots();
   else if (S.view === 'changes') viewChanges();
   else viewFolders();
   if (keepScroll) window.scrollTo(0, y);
+  else { main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter'); }
 }
 
 /* ---------- eventos ---------- */
