@@ -307,6 +307,29 @@ body.onb .search,body.onb nav.tabs{display:none}
 .step .minus{color:var(--danger)}.step .plus{color:var(--accent)}
 .step .qty{width:auto;min-width:46px;padding:0 4px;background:none;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--good)}
 .step .qty.zero{color:var(--danger)}
+/* seleção múltipla */
+.prow,.card.folder,.subchips .crumb{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;color:var(--on-grad);transition:background-color .15s,border-color .15s}
+.sel .chk,.chk.on{background:var(--accent);border-color:var(--accent)}
+.prow.selmode{cursor:pointer}
+.prow.selmode.sel{background:color-mix(in srgb,var(--accent) 11%,transparent);margin:0 -14px;padding-left:14px;padding-right:14px}
+.prow.selmode .step{opacity:.35;pointer-events:none}
+.prow.selmode .pinfo *{pointer-events:none}
+.card.folder.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 11%,var(--surface))}
+.subchips .crumb.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.subchips .crumb .chk{width:16px;height:16px;border-width:1.5px}
+.selbar{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:720px;z-index:36;background:var(--bg);padding:14px var(--gutter) 10px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)}
+.selbar .st{flex:1;min-width:0;display:grid;gap:1px}.selbar .st b{font-size:18px}.selbar .st small{color:var(--muted);font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.selbar .link{color:var(--accent);font-weight:700;font-size:14px;padding:10px 4px;white-space:nowrap}
+.actbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:720px;z-index:36;background:var(--surface);border-top:1px solid var(--line);display:flex;gap:8px;padding:10px 12px calc(10px + var(--safe-b))}
+.actbar button{flex:1;min-width:0;min-height:56px;border-radius:18px;background:var(--surface-2);font-weight:700;font-size:12.5px;display:grid;justify-items:center;align-content:center;gap:3px;transition:transform .1s}
+.actbar button:active{transform:scale(.96)}
+.actbar button svg{color:var(--accent)}
+.actbar .del,.actbar .del svg{color:var(--danger)}
+.actbar button:disabled{opacity:.4;pointer-events:none}
+body.selmode .fab,body.selmode .edge,body.selmode nav.tabs,body.selmode .top{display:none}
+body.selmode #toast{bottom:calc(84px + var(--safe-b))}
+body.selmode main{padding-bottom:calc(120px + var(--safe-b));padding-top:72px}
 .fab{position:fixed;right:16px;bottom:calc(var(--nav-h) + 16px + var(--safe-b));width:50px;height:50px;border-radius:50%;background:var(--grad);background-origin:border-box;color:var(--on-grad);display:grid;place-items:center;
   box-shadow:0 8px 22px -6px color-mix(in srgb,var(--accent) 55%,transparent);z-index:24;animation:fabin .2s ease}
 .fab:active{transform:scale(.94)}
@@ -415,6 +438,8 @@ body.onb .fab{display:none}
   <nav class="tabs" aria-label="Secções"><div class="in"><div id="tabs"></div><span class="ind" id="ind" hidden></span></div></nav>
 </div>
 <button class="fab" id="fab" type="button" aria-label="Adicionar peça" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<div class="selbar" id="selbar" hidden></div>
+<div class="actbar" id="actbar" hidden></div>
 <div class="edge" id="edge" role="button" tabindex="0" aria-label="Abrir o menu lateral (toque ou arraste)"><span></span></div>
 <div id="sheets"></div>
 <div id="toast" role="status" hidden></div>
@@ -673,6 +698,7 @@ const ICON = {
   wifioff: '<path d="M2 2l20 20M8.5 16.4a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5.1A15 15 0 0 1 22 8.8M5 12.9a10 10 0 0 1 5.2-2.7M15 11.4a10 10 0 0 1 4 1.5M12 20h.01"/>',
   sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
   home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
   history: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   layers: '<path d="M12 3 2 8l10 5 10-5-10-5z"/><path d="m2 13 10 5 10-5"/>',
@@ -1174,29 +1200,38 @@ function pieceRow(p, showPath, max) {   // uma linha compacta: nome, um chip (+N
   const node = getNode(p.path.slice(0, -1));
   const qty = node ? (Number(node[p.key]) || 0) : p.qty;
   const chips = pieceChipList(p), open = () => openPiece(p.path);
+  const canSel = !showPath && selectable(), selmode = canSel && inSelMode(), picked = selmode && inSel(false, p.key);
   const nameEl = showPath
     ? h('button', {class: 'p-name', type: 'button', onclick: () => goToPiece(p)}, display(p.key))
     : h('button', {class: 'p-name', type: 'button', onclick: open}, display(p.key));
   const nShow = window.GestTheme.get().dens === 'conf' ? 2 : 1;
   const sub = chips.length ? h('div', {class: 'psub'}, ...chips.slice(0, nShow), chips.length > nShow ? h('button', {class: 'more', type: 'button', 'aria-label': 'Ver tudo', onclick: open}, '+' + (chips.length - nShow)) : null) : null;
-  return h('div', {class: 'prow' + (flash ? ' flash' : ''), 'data-pk': pkey(p.path), style: '--pc:' + colorFor(p.path[0])},
-    h('span', {class: 'pdot'}),
+  const dis = selmode ? true : null;
+  const row = h('div', {class: 'prow' + (flash ? ' flash' : '') + (selmode ? ' selmode' : '') + (picked ? ' sel' : ''), 'data-pk': pkey(p.path), style: '--pc:' + colorFor(p.path[0]),
+      role: selmode ? 'checkbox' : null, 'aria-checked': selmode ? String(picked) : null, onclick: selmode ? () => selToggle(false, p.key) : null},
+    selmode ? h('span', {class: 'chk'}, picked ? svg(ICON.check, 14) : null) : h('span', {class: 'pdot'}),
     h('div', {class: 'pinfo'}, nameEl, showPath ? h('div', {class: 'p-path'}, p.path.slice(0, -1).join(' › ')) : null, sub,
       h('div', {class: 'mbar'}, h('i', {style: `width:${qty > 0 ? Math.max(3, Math.round(qty / Math.max(1, max) * 100)) : 0}%`}))),
     h('div', {class: 'step'},
-      h('button', {class: 'minus', type: 'button', 'aria-label': 'Retirar de ' + display(p.key), onclick: () => openQty(p.path, 'sub')}, '−'),
-      h('button', {class: 'qty' + (qty === 0 ? ' zero' : ''), type: 'button', 'aria-label': `Quantidade ${qty}. Definir`, onclick: () => openQty(p.path, 'set')}, String(qty)),
-      h('button', {class: 'plus', type: 'button', 'aria-label': 'Adicionar a ' + display(p.key), onclick: () => openQty(p.path, 'add')}, '+')));
+      h('button', {class: 'minus', type: 'button', disabled: dis, 'aria-label': 'Retirar de ' + display(p.key), onclick: () => openQty(p.path, 'sub')}, '−'),
+      h('button', {class: 'qty' + (qty === 0 ? ' zero' : ''), type: 'button', disabled: dis, 'aria-label': `Quantidade ${qty}. Definir`, onclick: () => openQty(p.path, 'set')}, String(qty)),
+      h('button', {class: 'plus', type: 'button', disabled: dis, 'aria-label': 'Adicionar a ' + display(p.key), onclick: () => openQty(p.path, 'add')}, '+')));
+  if (canSel && !selmode) holdToSelect(row, false, p.key);
+  return row;
 }
 const pieceRows = (items, showPath) => { const max = Math.max(1, ...items.map(p => p.qty)); return items.map(p => pieceRow(p, showPath, max)); };
 const pieceList = (items, showPath) => h('div', {class: 'plist'}, ...pieceRows(items, showPath));
 function folderCard(path) {
-  const st = stats(getNode(path));
-  return h('button', {class: 'card folder', type: 'button', onclick: () => { S.path = path; S.view = 'folders'; render(); window.scrollTo(0, 0); }},
+  const st = stats(getNode(path)), name = path[path.length - 1];
+  const canSel = selectable() && pkey(path.slice(0, -1)) === pkey(S.path), selmode = canSel && inSelMode(), picked = selmode && inSel(true, name);
+  const card = h('button', {class: 'card folder' + (picked ? ' sel' : ''), type: 'button',
+    onclick: selmode ? () => selToggle(true, name) : () => { S.path = path; S.view = 'folders'; render(); window.scrollTo(0, 0); }},
     h('span', {class: 'tile', style: 'background:' + colorFor(path[0])}, svg(ICON.folder, 22)),
-    h('span', {class: 'f-txt'}, h('span', {class: 'f-name'}, path[path.length - 1]),
+    h('span', {class: 'f-txt'}, h('span', {class: 'f-name'}, name),
       h('span', {class: 'f-meta'}, `${st.pieces} peça${st.pieces === 1 ? '' : 's'} · ${fmt(st.units)} un.`, st.zero ? h('b', {style: 'color:var(--danger);font-weight:600'}, ` · ${st.zero} sem stock`) : null)),
-    svg(ICON.chev, 18));
+    selmode ? h('span', {class: 'chk'}, picked ? svg(ICON.check, 14) : null) : svg(ICON.chev, 18));
+  if (canSel && !selmode) holdToSelect(card, true, name);
+  return card;
 }
 function goToPiece(p) {
   S.query = ''; document.getElementById('q').value = ''; document.getElementById('q-clear').hidden = true;
@@ -1262,8 +1297,14 @@ function viewFolders() {
     h('div', {class: 'hdr'}, h('h2', {class: 'ptitle'}, S.path[S.path.length - 1]),
       h('button', {class: 'icon-btn', type: 'button', 'aria-label': 'Mais ações da pasta', onclick: () => openFolderMenu(S.path.slice())}, svg(ICON.dots, 22))),
     h('div', {class: 'statline'}, sb(sst.pieces), ` peça${sst.pieces === 1 ? '' : 's'}`, h('i', null, '·'), sb(sst.units), ' un.', h('i', null, '·'), h('span', {class: sst.zero ? 'bad' : ''}, sb(sst.zero), ' sem stock'))];
-  if (folders.length && pieces.length) els.push(h('div', {class: 'subchips'}, ...folders.map(k => h('button', {class: 'crumb', type: 'button',
-    onclick: () => { S.path = S.path.concat(k); render(); window.scrollTo(0, 0); }}, h('span', null, k), h('small', null, String(stats(node[k]).pieces))))));
+  if (folders.length && pieces.length) els.push(h('div', {class: 'subchips'}, ...folders.map(k => {
+    const selmode = inSelMode(), picked = selmode && inSel(true, k);
+    const b = h('button', {class: 'crumb' + (picked ? ' sel' : ''), type: 'button',
+      onclick: selmode ? () => selToggle(true, k) : () => { S.path = S.path.concat(k); render(); window.scrollTo(0, 0); }},
+      selmode ? h('span', {class: 'chk' + (picked ? ' on' : '')}, picked ? svg(ICON.check, 10) : null) : null, h('span', null, k), h('small', null, String(stats(node[k]).pieces)));
+    if (!selmode) holdToSelect(b, true, k);
+    return b;
+  })));
   else if (folders.length) els.push(...folders.map(k => folderCard(S.path.concat(k))));
   if (pieces.length) {
     const box = h('div', {class: 'plist'});
@@ -1988,7 +2029,7 @@ function pickFolder({title, sub, exclude, allowRoot, current}) {
   return new Promise(res => {
     let done = false;
     const finish = v => { if (!done) { done = true; res(v); } };
-    const curK = current ? pkey(current) : null, rows = [];
+    const curK = current ? pkey(current) : null, rows = [], excl = exclude ? (Array.isArray(exclude[0]) ? exclude : [exclude]) : [];
     const row = (path, label, depth) => {
       const bad = pkey(path) === curK && current != null;
       return h('button', {class: 'pick', type: 'button', disabled: bad, style: `padding-left:${10 + depth * 18}px`, onclick: () => { finish(path); close(); }},
@@ -1998,7 +2039,7 @@ function pickFolder({title, sub, exclude, allowRoot, current}) {
     (function walk(node, path, depth) {
       for (const k of Object.keys(node).filter(x => isFolder(node[x])).sort(cmp)) {
         const p = path.concat(k);
-        if (exclude && underPath(p, exclude)) continue;
+        if (excl.some(x => underPath(p, x))) continue;
         rows.push(row(p, k, depth + (allowRoot ? 1 : 0)));
         walk(node[k], p, depth + 1);
       }
@@ -2052,12 +2093,154 @@ function openFolderMenu(path) {
   const item = (icon, label, fn, danger) => h('button', {class: 'menu-item', type: 'button', style: danger ? 'color:var(--danger)' : '', onclick: () => { close(); fn(); }}, svg(ICON[icon]), h('span', null, label));
   const close = openSheet([
     h('div', null, h('h3', null, path[path.length - 1]), h('div', {class: 'sub'}, path.slice(0, -1).join(' › ') || 'Pasta principal')),
+    item('check', 'Selecionar peças e pastas', () => selStart(null, null)),
     item('plus', 'Nova subpasta', () => flowNewFolder(path)),
     item('edit', 'Renomear', () => flowRename(path, true)),
     item('move', 'Mover', () => flowMove(path, true, false)),
     item('copy', 'Copiar', () => flowMove(path, true, true)),
     item('trash', 'Apagar', () => flowDelete(path, true), true)
   ]);
+}
+
+/* ---------- seleção múltipla: premir e manter numa peça ou subpasta; Mover, Copiar, Tag e Apagar de uma vez ---------- */
+let heldAt = 0;
+document.addEventListener('pointerdown', () => { heldAt = 0; }, true);   // um toque novo desliga a proteção
+document.addEventListener('click', e => { if (heldAt && Date.now() - heldAt < 1500) { heldAt = 0; e.stopPropagation(); e.preventDefault(); } }, true);   // o clique que sai de premir e manter não abre nada
+const selectable = () => !!(S.inv && S.view === 'folders' && S.path.length && !S.query.trim() && !S.edit);
+const inSelMode = () => !!(S.sel && S.sel.path === pkey(S.path));
+const selKey = (isF, k) => (isF ? 'f:' : 'p:') + k;
+const inSel = (isF, k) => !!(S.sel && S.sel.items.has(selKey(isF, k)));
+function selStart(isF, k) {
+  S.sel = {path: pkey(S.path), items: new Set()};
+  if (k !== null) S.sel.items.add(selKey(isF, k));
+  render(true);
+}
+function selToggle(isF, k) {
+  if (!inSelMode()) return;
+  const key = selKey(isF, k);
+  if (S.sel.items.has(key)) S.sel.items.delete(key); else S.sel.items.add(key);
+  render(true);
+}
+function selExit() { S.sel = null; render(true); }
+function selAll() {
+  const node = getNode(S.path), all = Object.keys(node).map(k => selKey(isFolder(node[k]), k));
+  if (all.every(k => S.sel.items.has(k))) S.sel.items.clear(); else all.forEach(k => S.sel.items.add(k));
+  render(true);
+}
+function holdToSelect(el, isF, k) {
+  let timer = null, x0 = 0, y0 = 0;
+  const stop = () => { clearTimeout(timer); timer = null; };
+  el.addEventListener('pointerdown', e => {
+    if ((e.pointerType === 'mouse' && e.button !== 0) || e.target.closest('.step')) return;
+    x0 = e.clientX; y0 = e.clientY; stop();
+    timer = setTimeout(() => {
+      timer = null; heldAt = Date.now();
+      try { if (navigator.vibrate) navigator.vibrate(18); } catch (x) {}
+      selStart(isF, k);
+    }, 450);
+  });
+  el.addEventListener('pointermove', e => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 10) stop(); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) el.addEventListener(ev, stop);
+  el.addEventListener('contextmenu', e => e.preventDefault());
+}
+function selItems() {   // o que está selecionado e ainda existe
+  const node = getNode(S.path) || {};
+  return [...S.sel.items].map(x => ({isF: x[0] === 'f', key: x.slice(2)})).filter(x => x.key in node && isFolder(node[x.key]) === x.isF);
+}
+function selCounts() {
+  const node = getNode(S.path) || {};
+  let np = 0, nf = 0, pieces = 0, units = 0;
+  for (const it of selItems()) {
+    if (it.isF) { nf++; const st = stats(node[it.key]); pieces += st.pieces; units += st.units; }
+    else { np++; pieces++; units += Number(node[it.key]) || 0; }
+  }
+  return {np, nf, pieces, units};
+}
+const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+const selDesc = (np, nf) => [np ? plural(np, 'peça', 'peças') : null, nf ? plural(nf, 'pasta', 'pastas') : null].filter(Boolean).join(' e ');
+function renderSel() {
+  const top = document.getElementById('selbar'), bar = document.getElementById('actbar'), on = !!S.sel;
+  document.body.classList.toggle('selmode', on);
+  top.hidden = bar.hidden = !on;
+  if (!on) { top.replaceChildren(); bar.replaceChildren(); return; }
+  const c = selCounts(), n = c.np + c.nf, node = getNode(S.path) || {}, total = Object.keys(node).length;
+  const allOn = total > 0 && n === total;
+  top.replaceChildren(
+    h('button', {class: 'icon-btn', type: 'button', 'aria-label': 'Sair da seleção', onclick: selExit}, svg(ICON.x, 20)),
+    h('div', {class: 'st'}, h('b', null, n === 1 ? '1 selecionada' : `${n} selecionadas`), h('small', null, n ? `${selDesc(c.np, c.nf)} · ${fmt(c.units)} un.` : 'Toque para escolher')),
+    h('button', {class: 'link', type: 'button', onclick: selAll}, allOn ? 'Desmarcar tudo' : 'Selecionar tudo'));
+  const btn = (icon, label, fn, cls, off) => h('button', {type: 'button', class: cls || null, disabled: off ? true : null, onclick: fn}, svg(ICON[icon], 21), label);
+  bar.replaceChildren(btn('move', 'Mover', () => selMove(false), null, !n), btn('copy', 'Copiar', () => selMove(true), null, !n),
+    ...(modOn('tags') ? [btn('tag', 'Tag', selTag, null, !c.np)] : []), btn('trash', 'Apagar', selDelete, 'del', !n));
+}
+// corre várias operações como uma só ação (um único Desfazer); as que não dão ficam de fora e são explicadas
+function runBatch(ops) {
+  const before = snapAll(), entries = [], skipped = [];
+  for (const op of ops) {
+    const r = structDo(op);
+    if (r.err) skipped.push(`«${op.label}»: ${r.err}`); else entries.push(r.entry);
+  }
+  if (entries.length) lastChange = {snap: [], entries, all: before};
+  return {entries, skipped};
+}
+function finishBatch(res, doneText) {
+  S.sel = null;
+  const ok = res.entries.length, sk = res.skipped.length;
+  if (!sk) { toast(doneText, {label: 'Desfazer', fn: undo}); render(true); return; }
+  toast(ok ? doneText : 'Nada foi feito.', ok ? {label: 'Desfazer', fn: undo} : null);
+  render(true);
+  const close = openSheet([
+    h('div', null, h('h3', null, ok ? 'Algumas ficaram de fora' : 'Não foi possível'), h('div', {class: 'sub'}, ok ? `${plural(ok, 'item feito', 'itens feitos')} · ${plural(sk, 'ficou de fora', 'ficaram de fora')}` : 'Nada foi alterado.')),
+    h('div', {class: 'panel', style: 'padding:6px 14px'}, ...res.skipped.map(t => h('div', {class: 'lotline', style: 'display:block;padding:8px 0;font-size:14px'}, t))),
+    h('div', {class: 'row'}, ok ? h('button', {class: 'btn gray', type: 'button', onclick: () => { close(); undo(); }}, 'Desfazer tudo') : null, h('button', {class: 'btn green', type: 'button', onclick: () => close()}, 'Fechar'))
+  ]);
+}
+const selOp = (it, extra) => Object.assign({alvo: it.isF ? 'pasta' : 'peca', de: S.path.concat(it.key), label: it.isF ? it.key : display(it.key)}, extra);
+async function selMove(copy) {
+  const items = selItems(); if (!items.length) return;
+  const folders = items.filter(x => x.isF), n = items.length;
+  const dest = await pickFolder({title: `${copy ? 'Copiar' : 'Mover'} ${plural(n, 'item', 'itens')} para...`, sub: selDesc(items.length - folders.length, folders.length) + ' · escolha a pasta de destino',
+    exclude: folders.length ? folders.map(x => S.path.concat(x.key)) : null, allowRoot: folders.length === n, current: copy ? null : S.path.slice()});
+  if (dest === null || !S.sel) return;
+  const res = runBatch(items.map(it => selOp(it, {acao: copy ? 'copiar' : 'mover', para: dest})));
+  finishBatch(res, `${plural(res.entries.length, 'item ' + (copy ? 'copiado' : 'movido'), 'itens ' + (copy ? 'copiados' : 'movidos'))} para ${dest.join(' › ') || 'a raiz'}.`);
+}
+async function selDelete() {
+  const items = selItems(); if (!items.length) return;
+  const c = selCounts(), hasF = c.nf > 0;
+  const ok = await ask({title: 'Apagar ' + selDesc(c.np, c.nf) + '?', danger: true, ok: 'Apagar',
+    text: `${hasF ? 'As pastas levam tudo o que têm lá dentro. ' : ''}No total ${plural(c.pieces, 'peça', 'peças')} e ${fmt(c.units)} un. deixam de existir (dá para desfazer logo a seguir).`});
+  if (!ok || !S.sel) return;
+  const res = runBatch(items.map(it => selOp(it, {acao: 'apagar'})));
+  finishBatch(res, `${plural(res.entries.length, 'item apagado', 'itens apagados')}.`);
+}
+async function selTag() {
+  const items = selItems().filter(x => !x.isF), skipF = selItems().length - items.length;
+  if (!items.length) { toast('A tag aplica-se só a peças.'); return; }
+  const opts = [{label: 'Sem tag (retirar)', value: null}, ...S.tags.library.map(t => ({label: t, value: t})), {label: '+ Nova tag...', value: '__nova__'}];
+  let v = await chooseSheet(`Tag para ${plural(items.length, 'peça', 'peças')}`, skipF ? 'As pastas selecionadas ficam de fora.' : 'Escolha a tag', opts);
+  if (v === undefined || !S.sel) return;
+  let nova = false;
+  if (v === '__nova__') {
+    const nm = await askText({title: 'Nova tag', placeholder: 'Nome da tag', ok: 'Criar'});
+    if (nm === null) return;
+    v = cleanName(nm);
+    if (!v) { toast('Escreva um nome válido.'); return; }
+    const ex = S.tags.library.find(t => t.toLowerCase() === v.toLowerCase());
+    if (ex) v = ex; else nova = true;
+  }
+  const before = snapAll(), entries = [];
+  if (nova) S.tags.library.push(v);
+  for (const it of items) {
+    const path = S.path.concat(it.key), cur = tagOf(path);
+    if (v === cur) continue;
+    if (v) S.tags.assignments[pkey(path)] = v; else delete S.tags.assignments[pkey(path)];
+    entries.push(attrCommit('tag', path, cur, v, v ? `tag: ${v}` : 'tag retirada', null, before));
+  }
+  S.sel = null;
+  if (!entries.length) { toast('Nada mudou: já tinham esta tag.'); render(true); return; }
+  lastChange = {snap: [], entries, all: before};
+  attrDone(v ? `Tag «${v}» atribuída a ${plural(entries.length, 'peça', 'peças')}.` : `Tag retirada de ${plural(entries.length, 'peça', 'peças')}.`);
 }
 
 /* ---------- atributos da peça: tag, etiquetas e lotes ---------- */
@@ -2309,6 +2492,8 @@ function importadoHa() {
 function render(keepScroll) {
   const y = window.scrollY;
   enterAnim = !keepScroll;
+  if (S.sel && !(selectable() && S.sel.path === pkey(S.path))) S.sel = null;   // a seleção acaba ao sair da pasta
+  renderSel();
   document.getElementById('fab').hidden = !(S.inv && S.view === 'folders' && S.path.length > 0 && !S.query.trim() && !S.edit);
   document.body.classList.toggle('onb', !S.inv);
   renderTabs();
