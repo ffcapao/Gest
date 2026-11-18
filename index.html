@@ -154,12 +154,17 @@ nav.tabs .in{width:100%;max-width:720px;display:flex;position:relative}
 .ind::after{content:"";width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
 
 /* folhas e diálogos */
-#sheets{position:fixed;inset:0;z-index:50;pointer-events:none}
+#sheets{position:fixed;inset:0 0 var(--kb,0px) 0;z-index:50;pointer-events:none}
 .backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);pointer-events:auto;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
 .backdrop.dlg{align-items:center;padding:20px}
-.sheet{width:100%;max-width:480px;background:var(--bg);border-radius:28px 28px 0 0;padding:12px var(--gutter) calc(24px + var(--safe-b));display:grid;gap:16px;max-height:92dvh;overflow:auto;animation:up .28s var(--ease)}
+.sheet{width:100%;max-width:480px;background:var(--bg);border-radius:28px 28px 0 0;padding:12px var(--gutter) calc(24px + var(--safe-b));display:grid;gap:16px;max-height:96%;overflow:auto;animation:up .28s var(--ease)}
 .dlg .sheet{width:min(340px,100%);background:var(--surface);border-radius:26px;padding:26px 22px 20px;text-align:center;box-shadow:0 24px 60px -12px rgba(0,0,0,.55);animation:pop .38s cubic-bezier(.2,1.3,.4,1)}
-.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto -4px}
+.grab{width:100%;height:30px;margin:-6px 0 -10px;display:grid;place-items:center;touch-action:none;cursor:grab}
+.grab span{width:44px;height:5px;border-radius:3px;background:var(--muted);opacity:.5}
+.app{padding-left:14px}
+.edge{position:fixed;left:0;top:50%;transform:translateY(-50%);width:14px;height:88px;z-index:25;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);border-left:0;border-radius:0 12px 12px 0;touch-action:none;cursor:grab}
+.edge span{width:3px;height:32px;border-radius:2px;background:var(--muted);opacity:.55}
+body.onb .edge{display:none}
 @keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
@@ -369,6 +374,7 @@ body.onb .search,body.onb nav.tabs{display:none}
   <main id="main" aria-live="polite"></main>
   <nav class="tabs" aria-label="Secções"><div class="in"><div id="tabs"></div><span class="ind" id="ind" hidden></span></div></nav>
 </div>
+<div class="edge" id="edge" role="button" tabindex="0" aria-label="Abrir o menu lateral (toque ou arraste)"><span></span></div>
 <div id="sheets"></div>
 <div id="toast" role="status" hidden></div>
 <input id="file" type="file" accept=".json,application/json" multiple hidden>
@@ -660,7 +666,7 @@ function openSheet(content, onClose, kind) {
   clearTimeout(toastTimer); document.getElementById('toast').hidden = true;
   const host = document.getElementById('sheets');
   const back = h('div', {class: 'backdrop' + (kind === 'dialog' ? ' dlg' : '')});
-  const sheet = h('div', {class: 'sheet', role: 'dialog', 'aria-modal': 'true'}, kind === 'dialog' ? null : h('div', {class: 'grab'}), content);
+  const sheet = h('div', {class: 'sheet', role: 'dialog', 'aria-modal': 'true'}, kind === 'dialog' ? null : h('div', {class: 'grab', 'aria-hidden': 'true'}, h('span')), content);
   back.append(sheet);
   let closed = false;
   const close = () => { if (closed) return; closed = true; document.removeEventListener('keydown', onKey); back.remove(); if (onClose) onClose(); };
@@ -668,6 +674,18 @@ function openSheet(content, onClose, kind) {
   back.addEventListener('click', e => { if (e.target === back) close(); });
   document.addEventListener('keydown', onKey);
   host.append(back);
+  if (kind !== 'dialog') {   // arrastar a pega (a barrinha do topo) para baixo fecha a folha
+    const grab = sheet.querySelector('.grab'); let y0 = null, dy = 0, t0 = 0;
+    grab.addEventListener('pointerdown', e => { y0 = e.clientY; dy = 0; t0 = performance.now(); sheet.style.animation = 'none'; sheet.style.transition = 'none'; try { grab.setPointerCapture(e.pointerId); } catch (x) {} });
+    grab.addEventListener('pointermove', e => { if (y0 === null) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = `translateY(${dy}px)`; back.style.background = `rgba(0,0,0,${(.55 * (1 - Math.min(1, dy / 500))).toFixed(3)})`; });
+    const up = () => {
+      if (y0 === null) return;
+      const v = dy / Math.max(1, performance.now() - t0); y0 = null;
+      if (dy > 110 || (dy > 40 && v > 0.6)) { sheet.style.transition = 'transform .2s ease'; sheet.style.transform = 'translateY(100%)'; back.style.transition = 'background .2s'; back.style.background = 'rgba(0,0,0,0)'; setTimeout(close, 190); }
+      else { sheet.style.transition = 'transform .2s var(--ease)'; sheet.style.transform = ''; back.style.background = ''; }
+    };
+    grab.addEventListener('pointerup', up); grab.addEventListener('pointercancel', up);
+  }
   return close;
 }
 function ask({title, text, ok = 'Confirmar', danger = false}) {
@@ -918,7 +936,7 @@ function openQty(path, mode) {
   }
   const seg = h('div', {class: 'seg', role: 'group', 'aria-label': 'Tipo de alteração'},
     ...[['add', 'Adicionar', 'm-add'], ['sub', 'Retirar', 'm-sub'], ['set', 'Definir', 'm-set']].map(([k, label, cls]) =>
-      (segBtns[k] = h('button', {type: 'button', class: cls, onclick: () => { m = k; update(); input.focus(); }}, label))));
+      (segBtns[k] = h('button', {type: 'button', class: cls, onclick: () => { m = k; update(); }}, label))));
   const quick = h('div', {class: 'quick'}, ...[1, 5, 10, 50].map(n =>
     h('button', {type: 'button', onclick: () => { input.value = String((val() || 0) + n); update(); }}, '+' + n)));
   input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 7); update(); });
@@ -929,7 +947,6 @@ function openQty(path, mode) {
   ]);
   okBtn.addEventListener('click', () => { const r = result(); if (r !== null) { close(); commitQty(path, cur, r); } });
   update();
-  setTimeout(() => input.focus(), 60);
 }
 function openNote(entry) {
   const ta = h('textarea', {class: 'field', 'aria-label': 'Nota', placeholder: 'Escreva uma nota (opcional)'});
@@ -942,7 +959,6 @@ function openNote(entry) {
       h('button', {class: 'btn gray', type: 'button', onclick: () => close()}, 'Cancelar'),
       h('button', {class: 'btn green', type: 'button', onclick: () => { entry.nota = ta.value.trim(); save(K.log, S.log); close(); render(true); }}, 'Guardar'))
   ]);
-  setTimeout(() => ta.focus(), 60);
 }
 
 /* ---------- importar / exportar ---------- */
@@ -1064,15 +1080,13 @@ function openAspect() {
 function openHelp() {
   const close = openSheet([
     h('h3', null, 'Como funciona'),
-    h('p', null, 'Esta app guarda uma cópia do seu inventário só neste telemóvel. Nada é enviado para a internet.'),
-    h('p', null, '1. No PC, copie o inventario.json e o tags.json (pasta "Base de Dados") para o telemóvel e importe-os aqui.'),
-    h('p', null, 'Abra o menu (☰, ou deslize a partir da borda esquerda) para ir ao Início, ao Histórico e aos Kits, e para ver as pastas, tags, etiquetas e lotes.'),
-    h('p', null, 'Em Kits vê as receitas e quantos kits dá para montar com o stock atual; as peças mostram os seus lotes (toque no lote para ver o detalhe).'),
-    h('p', null, 'Em Kits pode criar kits novos ("+ Novo kit"), editar a receita e apagar. Estas alterações também ficam em Alterações e seguem no ficheiro exportado: se a receita tiver mudado no PC entretanto, o PC mostra um conflito e não a substitui.'),
-    h('p', null, 'Em Kits, "Dar saída de kits" tira de uma só vez todas as peças da receita (por lotes, do mais antigo para o mais novo, ou o lote que escolher) e fica registado nas Alterações. Se uma peça tem lotes, o + e o − perguntam o lote.'),
-    h('p', null, '2. Consulte e ajuste quantidades com + e −. Cada alteração fica registada.'),
-    h('p', null, '3. Para levar as alterações de volta ao PC, use "Exportar alterações" (alteracoes_telemovel.json). No PC, na janela do Histórico, carregue em "Importar telemóvel".'),
-    h('p', {class: 'sub'}, 'Atenção: se alterar o inventário no PC e no telemóvel ao mesmo tempo, os ficheiros divergem. Escolha sempre qual a versão que fica.'),
+    h('p', null, 'Esta app guarda o seu inventário só neste telemóvel. Nada é enviado para a internet.'),
+    h('p', null, 'Em baixo: Início, Explorar (pastas, tags, etiquetas e lotes), Kits e Histórico. O menu de Explorar também se abre com a pega do lado esquerdo do ecrã: toque ou arraste para a direita.'),
+    h('p', null, 'Toque no nome de uma peça para ver o detalhe, mudar a tag, as etiquetas e os lotes, ou renomear, mover, copiar e apagar. Dentro de uma pasta use "Adicionar peça" e "Subpasta". Com + e − muda as quantidades; se a peça tem lotes, a app pergunta o lote.'),
+    h('p', null, 'Em Kits cria receitas e dá saída de kits de uma só vez (por lotes, do mais antigo para o mais novo, ou o que escolher).'),
+    h('p', null, 'Para levar as alterações ao PC: ⋯ › Exportar alterações; no PC, Histórico › Importar telemóvel. Se o PC já tiver mudado a mesma coisa, aparece um conflito e nada é substituído.'),
+    h('p', null, 'Em ⋯ também há Backup completo, Restaurar backup, exportar em CSV e Aspeto e módulos.'),
+    h('p', {class: 'sub'}, 'Para fechar uma janela, arraste a barrinha do topo para baixo ou toque fora dela.'),
     h('button', {class: 'btn gray block', type: 'button', onclick: () => close()}, 'Fechar')
   ]);
 }
@@ -1515,7 +1529,7 @@ function closeDrawer(instant) {
   const done = () => { back.remove(); panel.remove(); };
   if (instant || document.documentElement.classList.contains('no-anim')) done(); else setTimeout(done, 280);
 }
-function openDrawer() {
+function openDrawer(drag) {
   if (drawerEl) return;
   clearTimeout(toastTimer); document.getElementById('toast').hidden = true;
   const back = h('div', {class: 'dback', onclick: () => closeDrawer()});
@@ -1527,8 +1541,21 @@ function openDrawer() {
   if (S.view === 'folders') for (let i = 1; i < S.path.length; i++) S.exp.add(pkey(S.path.slice(0, i)));   // abre os pais da pasta atual
   drawerEl = {back, panel};
   renderDrawer();
+  if (drag) { panel.style.transition = 'none'; back.style.transition = 'none'; panel.style.transform = 'translateX(-100%)'; return; }
   void panel.offsetWidth; panel.classList.add('open'); back.classList.add('open');
   document.addEventListener('keydown', drawerKey);
+}
+function dragMove(x) {
+  const {panel, back} = drawerEl, w = panel.offsetWidth;
+  panel.style.transform = `translateX(${Math.min(0, x - w)}px)`; back.style.opacity = String(Math.max(0, Math.min(1, x / w)));
+}
+function dragEnd(open) {
+  if (!drawerEl) return;
+  const {panel, back} = drawerEl;
+  panel.style.transition = ''; back.style.transition = ''; void panel.offsetWidth;
+  panel.style.transform = ''; back.style.opacity = '';
+  if (open) { panel.classList.add('open'); back.classList.add('open'); document.addEventListener('keydown', drawerKey); }
+  else closeDrawer();
 }
 function drawerTree(node, path, depth, out) {
   for (const k of Object.keys(node).filter(x => isFolder(node[x])).sort(cmp)) {
@@ -1596,10 +1623,36 @@ function renderDrawer() {
       h('button', {class: 'dn', type: 'button', onclick: () => { closeDrawer(); openAspect(); }}, svg(ICON.palette, 20), 'Aspeto')));
   P.querySelector('.dlist').scrollTop = keep;
 }
+// o teclado do telemóvel só abre quando se toca numa caixa de texto; e as folhas ficam por cima dele (não escondidas)
+(function () {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const set = () => document.documentElement.style.setProperty('--kb', Math.max(0, window.innerHeight - vv.height - vv.offsetTop) + 'px');
+  vv.addEventListener('resize', set); vv.addEventListener('scroll', set); set();
+})();
+// a pega do lado esquerdo: um toque abre o menu; arrastar para a direita abre-o a acompanhar o dedo
+(function () {
+  const edge = document.getElementById('edge'); let st = null;
+  edge.addEventListener('pointerdown', e => { if (drawerEl) return; st = {x0: e.clientX, moved: false}; try { edge.setPointerCapture(e.pointerId); } catch (x) {} });
+  edge.addEventListener('pointermove', e => {
+    if (!st) return;
+    const dx = e.clientX - st.x0;
+    if (!st.moved && dx > 6) { st.moved = true; openDrawer(true); }
+    if (st.moved && drawerEl) dragMove(dx);
+  });
+  edge.addEventListener('pointerup', e => {
+    if (!st) return;
+    const s2 = st; st = null;
+    if (!s2.moved) { openDrawer(); return; }
+    if (drawerEl) dragEnd((e.clientX - s2.x0) > drawerEl.panel.offsetWidth * 0.3);
+  });
+  edge.addEventListener('pointercancel', () => { if (!st) return; const s2 = st; st = null; if (s2.moved && drawerEl) dragEnd(false); });
+  edge.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrawer(); } });
+})();
 // deslizar a partir da borda esquerda abre o menu
 (function () {
   let x0 = null, y0 = 0;
-  document.addEventListener('touchstart', e => { const t = e.touches[0]; x0 = t.clientX < 22 && !drawerEl ? t.clientX : null; y0 = t.clientY; }, {passive: true});
+  document.addEventListener('touchstart', e => { const t = e.touches[0]; x0 = t.clientX < 22 && !drawerEl && !(e.target.closest && e.target.closest('#edge')) ? t.clientX : null; y0 = t.clientY; }, {passive: true});
   document.addEventListener('touchend', e => { if (x0 === null) return; const t = e.changedTouches[0]; const dx = t.clientX - x0, dy = t.clientY - y0; x0 = null; if (dx > 60 && Math.abs(dy) < 50) openDrawer(); }, {passive: true});
 })();
 
@@ -1618,21 +1671,30 @@ function periodStart(p) {
   return null;
 }
 function periodCard() {
-  const per = S.period || 'semana', from = periodStart(per);
-  let inn = 0, out = 0, n = 0;
-  for (const e of S.log) {
-    if (e.tipo !== 'qtd') continue;
-    if (from && new Date(String(e.ts).replace(' ', 'T')) < from) continue;
-    const d = e.depois - e.antes; n++;
-    if (d > 0) inn += d; else out -= d;
+  let per = S.period || 'semana';
+  const out = h('div');
+  const m = (l, v, c) => h('div', null, h('span', null, l), h('b', {style: c ? 'color:var(--' + c + ')' : ''}, v));
+  function fill() {   // só muda os números: a página não se refaz nem pisca
+    const from = periodStart(per);
+    let inn = 0, outc = 0, n = 0;
+    for (const e of S.log) {
+      if (e.tipo !== 'qtd') continue;
+      if (from && new Date(String(e.ts).replace(' ', 'T')) < from) continue;
+      const d = e.depois - e.antes; n++;
+      if (d > 0) inn += d; else outc -= d;
+    }
+    out.replaceChildren(S.log.length ? h('div', {class: 'mv'}, m('Entradas', '+' + fmt(inn), 'good'), m('Saídas', '−' + fmt(outc), 'danger'), m('Alterações', fmt(n))) : h('div', {class: 'hint'}, 'Ainda sem alterações neste telemóvel.'));
   }
   const seg = h('div', {class: 'seg', role: 'group', 'aria-label': 'Período'},
     ...[['hoje', 'Hoje'], ['semana', 'Semana'], ['mes', 'Mês'], ['tudo', 'Tudo']].map(([k, l]) =>
-      h('button', {type: 'button', 'aria-pressed': String(per === k), onclick: () => { S.period = k; render(true); }}, l)));
-  segSync(seg);
-  const m = (l, v, c) => h('div', null, h('span', null, l), h('b', {style: c ? 'color:var(--' + c + ')' : ''}, v));
-  return h('div', {class: 'period'}, h('div', {class: 'lbl'}, 'Movimento (alterações feitas neste telemóvel)'), seg,
-    S.log.length ? h('div', {class: 'mv'}, m('Entradas', '+' + fmt(inn), 'good'), m('Saídas', '−' + fmt(out), 'danger'), m('Alterações', fmt(n))) : h('div', {class: 'hint'}, 'Ainda sem alterações neste telemóvel.'));
+      h('button', {type: 'button', 'data-k': k, 'aria-pressed': String(per === k), onclick: () => {
+        per = S.period = k;
+        for (const b of seg.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.k === k));
+        segSync(seg); fill();
+      }}, l)));
+  segSync(seg); fill();
+  return h('div', {class: 'period'}, h('div', {class: 'lbl'}, 'Movimento de stock'), seg, out,
+    h('div', {class: 'hint', style: 'font-size:12px;padding:0'}, 'Só o que mudou neste telemóvel desde a última importação. A lista completa está no Histórico.'));
 }
 function viewHome() {
   const st = stats(S.inv);
@@ -1846,7 +1908,6 @@ function askText({title, sub, value = '', placeholder = '', ok = 'Guardar', nume
       h('div', null, h('h3', null, title), sub ? h('div', {class: 'sub'}, sub) : null), input,
       h('div', {class: 'row'}, h('button', {class: 'btn gray', type: 'button', onclick: () => close()}, 'Cancelar'), h('button', {class: 'btn green', type: 'button', onclick: go}, ok))
     ], () => finish(null));
-    setTimeout(() => { input.focus(); input.select(); }, 80);
   });
 }
 function pickFolder({title, sub, exclude, allowRoot, current}) {
