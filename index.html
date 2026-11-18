@@ -312,6 +312,14 @@ body.onb .search,body.onb nav.tabs{display:none}
 .fab:active{transform:scale(.94)}
 @keyframes fabin{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
 body.onb .fab{display:none}
+[data-dens="conf"] .prow{padding:17px 0;gap:12px}
+[data-dens="conf"] .prow .p-name{font-size:17px}
+[data-dens="conf"] .psub{gap:6px}
+[data-dens="conf"] .psub .chip{font-size:12.5px;padding:2px 10px}
+[data-dens="conf"] .mbar{height:4px;margin-top:4px}
+[data-dens="conf"] .step{gap:6px}
+[data-dens="conf"] .step button{width:46px;height:46px;border-radius:14px}
+[data-dens="conf"] .step .qty{min-width:52px;font-size:18px}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 14px + var(--safe-b));z-index:60;background:var(--text);color:var(--bg);border-radius:22px;padding:12px 20px;display:flex;gap:16px;align-items:center;max-width:calc(100% - 32px);font-size:14px;font-weight:700;box-shadow:0 10px 28px -8px rgba(0,0,0,.5);animation:toastin .25s ease}
 @keyframes toastin{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%)}}
 #toast button{color:var(--bg);font-weight:800;text-decoration:underline;padding:6px 2px}
@@ -336,7 +344,7 @@ body.onb .fab{display:none}
   };
   const MODES = [['escuro', 'Escuro'], ['claro', 'Claro'], ['auto', 'Automático'], ['auto_escuro', 'Auto escuro'], ['auto_claro', 'Auto claro']];
   const KEY = 'gkever.ui';   // só gostos visuais; as chaves dos dados não se tocam
-  const DEFAULT = {pal: 'classico', mode: 'escuro', mods: {kits: true, lots: true, labels: true, tags: true}};
+  const DEFAULT = {pal: 'classico', mode: 'escuro', dens: 'compacta', mods: {kits: true, lots: true, labels: true, tags: true}};
 
   const rgb = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
   const hex = c => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
@@ -347,6 +355,7 @@ body.onb .fab{display:none}
   try { const raw = localStorage.getItem(KEY); if (raw) { const p = JSON.parse(raw); if (p && typeof p === 'object') prefs = Object.assign(prefs, p); } } catch (e) {}
   if (!PALETTES[prefs.pal]) prefs.pal = DEFAULT.pal;
   if (!MODES.some(m => m[0] === prefs.mode)) prefs.mode = DEFAULT.mode;
+  if (prefs.dens !== 'compacta' && prefs.dens !== 'conf') prefs.dens = 'compacta';
   const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
 
   function apply() {
@@ -355,6 +364,7 @@ body.onb .fab{display:none}
     const accent = light ? pal.light : pal.dark;
     const [c1, c2] = pal.g;
     root.setAttribute('data-mode', light ? 'light' : 'dark');
+    root.setAttribute('data-dens', prefs.dens);
     st.setProperty('--accent', accent);
     st.setProperty('--accent-2', pal.a2 || (lum(c2) < .2 ? mix(c2, pal.dark, .55) : c2));
     st.setProperty('--c1', c1); st.setProperty('--c2', c2);
@@ -1101,7 +1111,7 @@ function openAspect() {
         h('span', {class: 'dot', style: `background:linear-gradient(135deg,${p.g[0]},${p.g[1]})`}), p.n)));
     const mode = h('div', {class: 'choices'}, ...T.MODES.map(([k, n]) =>
       h('button', {type: 'button', class: 'pchoice' + (cur.mode === k ? ' on' : ''), 'aria-pressed': String(cur.mode === k), onclick: () => { T.set({mode: k}); draw(); }}, n)));
-    box.replaceChildren(h('div', {class: 'lbl', style: 'margin-bottom:8px'}, 'Paleta'), pal, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Modo'), mode, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Módulos'), h('div', {class: 'choices'}, ...MODULES.map(([k, name]) => { const on = (cur.mods || {})[k] !== false; return h('button', {type: 'button', class: 'pchoice' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => { T.set({mods: Object.assign({kits: true, lots: true, labels: true, tags: true}, cur.mods || {}, {[k]: !on})}); draw(); render(true); }}, name); })));
+    box.replaceChildren(h('div', {class: 'lbl', style: 'margin-bottom:8px'}, 'Paleta'), pal, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Modo'), mode, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Lista de peças'), h('div', {class: 'choices'}, ...[['compacta', 'Compacta'], ['conf', 'Confortável']].map(([k, l]) => h('button', {type: 'button', class: 'pchoice' + (cur.dens === k ? ' on' : ''), 'aria-pressed': String(cur.dens === k), onclick: () => { T.set({dens: k}); draw(); render(true); }}, l))), h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Módulos'), h('div', {class: 'choices'}, ...MODULES.map(([k, name]) => { const on = (cur.mods || {})[k] !== false; return h('button', {type: 'button', class: 'pchoice' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => { T.set({mods: Object.assign({kits: true, lots: true, labels: true, tags: true}, cur.mods || {}, {[k]: !on})}); draw(); render(true); }}, name); })));
   }
   draw();
   const close = openSheet([h('h3', null, 'Aspeto'), box, h('button', {class: 'btn block', type: 'button', onclick: () => close()}, 'Fechar')]);
@@ -1167,7 +1177,8 @@ function pieceRow(p, showPath, max) {   // uma linha compacta: nome, um chip (+N
   const nameEl = showPath
     ? h('button', {class: 'p-name', type: 'button', onclick: () => goToPiece(p)}, display(p.key))
     : h('button', {class: 'p-name', type: 'button', onclick: open}, display(p.key));
-  const sub = chips.length ? h('div', {class: 'psub'}, chips[0], chips.length > 1 ? h('button', {class: 'more', type: 'button', 'aria-label': 'Ver tudo', onclick: open}, '+' + (chips.length - 1)) : null) : null;
+  const nShow = window.GestTheme.get().dens === 'conf' ? 2 : 1;
+  const sub = chips.length ? h('div', {class: 'psub'}, ...chips.slice(0, nShow), chips.length > nShow ? h('button', {class: 'more', type: 'button', 'aria-label': 'Ver tudo', onclick: open}, '+' + (chips.length - nShow)) : null) : null;
   return h('div', {class: 'prow' + (flash ? ' flash' : ''), 'data-pk': pkey(p.path), style: '--pc:' + colorFor(p.path[0])},
     h('span', {class: 'pdot'}),
     h('div', {class: 'pinfo'}, nameEl, showPath ? h('div', {class: 'p-path'}, p.path.slice(0, -1).join(' › ')) : null, sub,
