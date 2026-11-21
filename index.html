@@ -1225,9 +1225,10 @@ function folderCard(path) {
   const st = stats(getNode(path)), name = path[path.length - 1];
   const canSel = selectable() && pkey(path.slice(0, -1)) === pkey(S.path), selmode = canSel && inSelMode(), picked = selmode && inSel(true, name);
   const card = h('button', {class: 'card folder' + (picked ? ' sel' : ''), type: 'button',
-    onclick: selmode ? () => selToggle(true, name) : () => { S.path = path; S.view = 'folders'; render(); window.scrollTo(0, 0); }},
+    onclick: selmode ? () => selToggle(true, name) : () => { clearSearch(false); S.tagFilter = null; S.labelFilter = null; S.lotFilter = null; S.path = path; S.view = 'folders'; render(); window.scrollTo(0, 0); }},
     h('span', {class: 'tile', style: 'background:' + colorFor(path[0])}, svg(ICON.folder, 22)),
     h('span', {class: 'f-txt'}, h('span', {class: 'f-name'}, name),
+      S.query.trim() && path.length > 1 ? h('span', {class: 'f-meta'}, path.slice(0, -1).join(' › ')) : null,   // na pesquisa: onde está a pasta
       h('span', {class: 'f-meta'}, `${st.pieces} peça${st.pieces === 1 ? '' : 's'} · ${fmt(st.units)} un.`, st.zero ? h('b', {style: 'color:var(--danger);font-weight:600'}, ` · ${st.zero} sem stock`) : null)),
     selmode ? h('span', {class: 'chk'}, picked ? svg(ICON.check, 14) : null) : svg(ICON.chev, 18));
   if (canSel && !selmode) holdToSelect(card, true, name);
