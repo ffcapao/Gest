@@ -367,7 +367,7 @@ body.onb .fab{display:none}
   };
   const MODES = [['escuro', 'Escuro'], ['claro', 'Claro'], ['auto', 'Automático'], ['auto_escuro', 'Auto escuro'], ['auto_claro', 'Auto claro']];
   const KEY = 'gkever.ui';   // só gostos visuais; as chaves dos dados não se tocam
-  const DEFAULT = {pal: 'classico', mode: 'escuro', dens: 'compacta', mods: {kits: true, lots: true, labels: true, tags: true}};
+  const DEFAULT = {pal: 'classico', mode: 'escuro', dens: 'compacta'};
 
   const rgb = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
   const hex = c => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
@@ -1120,7 +1120,7 @@ function openMenu() {
     h('h3', null, 'Menu'),
     item('upload', 'Importar ficheiros', 'inventario.json e tags.json do PC (ou um backup)', pickFiles),
     item('download', 'Exportar alterações', S.log.length ? `${pending()} por exportar` : 'Sem alterações', () => S.log.length && exportLog()),
-    item('palette', 'Aspeto e módulos', 'Paleta, claro ou escuro, animações e o que usar', openAspect),
+    item('palette', 'Aspeto', 'Paleta, claro ou escuro e densidade da lista', openAspect),
     item('download', 'Backup completo', 'Guarda tudo num só ficheiro', backupAll),
     item('upload', 'Restaurar backup', 'Volta a um backup completo', pickFiles),
     item('list', 'Exportar inventário (CSV)', 'Abre no Excel', () => exportCsv()),
@@ -1137,7 +1137,7 @@ function openAspect() {
         h('span', {class: 'dot', style: `background:linear-gradient(135deg,${p.g[0]},${p.g[1]})`}), p.n)));
     const mode = h('div', {class: 'choices'}, ...T.MODES.map(([k, n]) =>
       h('button', {type: 'button', class: 'pchoice' + (cur.mode === k ? ' on' : ''), 'aria-pressed': String(cur.mode === k), onclick: () => { T.set({mode: k}); draw(); }}, n)));
-    box.replaceChildren(h('div', {class: 'lbl', style: 'margin-bottom:8px'}, 'Paleta'), pal, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Modo'), mode, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Lista de peças'), h('div', {class: 'choices'}, ...[['compacta', 'Compacta'], ['conf', 'Confortável']].map(([k, l]) => h('button', {type: 'button', class: 'pchoice' + (cur.dens === k ? ' on' : ''), 'aria-pressed': String(cur.dens === k), onclick: () => { T.set({dens: k}); draw(); render(true); }}, l))), h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Módulos'), h('div', {class: 'choices'}, ...MODULES.map(([k, name]) => { const on = (cur.mods || {})[k] !== false; return h('button', {type: 'button', class: 'pchoice' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => { T.set({mods: Object.assign({kits: true, lots: true, labels: true, tags: true}, cur.mods || {}, {[k]: !on})}); draw(); render(true); }}, name); })));
+    box.replaceChildren(h('div', {class: 'lbl', style: 'margin-bottom:8px'}, 'Paleta'), pal, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Modo'), mode, h('div', {class: 'lbl', style: 'margin:16px 0 8px'}, 'Lista de peças'), h('div', {class: 'choices'}, ...[['compacta', 'Compacta'], ['conf', 'Confortável']].map(([k, l]) => h('button', {type: 'button', class: 'pchoice' + (cur.dens === k ? ' on' : ''), 'aria-pressed': String(cur.dens === k), onclick: () => { T.set({dens: k}); draw(); render(true); }}, l))));
   }
   draw();
   const close = openSheet([h('h3', null, 'Aspeto'), box, h('button', {class: 'btn block', type: 'button', onclick: () => close()}, 'Fechar')]);
@@ -1150,7 +1150,7 @@ function openHelp() {
     h('p', null, 'Toque no nome de uma peça para ver o detalhe, mudar a tag, as etiquetas e os lotes, ou renomear, mover, copiar e apagar. Dentro de uma pasta use "Adicionar peça" e "Subpasta". Com + e − muda as quantidades; se a peça tem lotes, a app pergunta o lote.'),
     h('p', null, 'Em Kits cria receitas e dá saída de kits de uma só vez (por lotes, do mais antigo para o mais novo, ou o que escolher).'),
     h('p', null, 'Para levar as alterações ao PC: ⋯ › Exportar alterações; no PC, Histórico › Importar telemóvel. Se o PC já tiver mudado a mesma coisa, aparece um conflito e nada é substituído.'),
-    h('p', null, 'Em ⋯ também há Backup completo, Restaurar backup, exportar em CSV e Aspeto e módulos.'),
+    h('p', null, 'Em ⋯ também há Backup completo, Restaurar backup, exportar em CSV e Aspeto.'),
     h('p', {class: 'sub'}, 'Para fechar uma janela, arraste a barrinha do topo para baixo ou toque fora dela.'),
     h('button', {class: 'btn gray block', type: 'button', onclick: () => close()}, 'Fechar')
   ]);
@@ -1249,30 +1249,20 @@ function startEmpty() {
   save(K.base, S.base); save(K.meta, S.meta); save(K.baselots, S.baseLots); save(K.basekits, S.baseKits); save(K.basetags, S.baseTags); save(K.baselabels, S.baseLabels); saveAll();
   render(); window.scrollTo(0, 0);
 }
-const MODULES = [['kits', 'Kits', 'Receitas e saída de kits', 'kit'], ['lots', 'Lotes', 'Stock repartido por lote (do mais antigo ao mais novo)', 'layers'],
-  ['labels', 'Etiquetas', 'Propriedades extra, com ou sem valor', 'tag'], ['tags', 'Tags', 'Uma marca por peça, para agrupar', 'tag']];
 function viewWelcome() {
   const step = S.onb || 'welcome';
   const feat = (icon, b, t) => h('li', null, svg(ICON[icon], 20), h('span', null, h('b', null, b), ' — ' + t));
   if (step === 'welcome') {
     main.replaceChildren(h('div', {class: 'onb-box'}, h('div', {class: 'logo'}, 'G.'), h('h1', null, 'Gest'),
       h('p', {class: 'lead'}, 'O teu inventário, simples e só teu. Sem complicações, sem internet, sem anúncios.'),
-      h('ul', {class: 'feats'}, feat('lock', 'Privado', 'os dados nunca saem do telemóvel'), feat('wifioff', 'Offline', 'funciona em qualquer lado'), feat('sliders', 'Teu', 'escolhes o que queres usar')),
-      h('button', {class: 'btn green block', type: 'button', onclick: () => { S.onb = 'mods'; render(); }}, 'Começar')));
-  } else if (step === 'mods') {
-    const cur = Object.assign({kits: true, lots: true, labels: true, tags: true}, window.GestTheme.get().mods || {});
-    const cards = MODULES.map(([k, name, sub, icon]) => h('button', {class: 'modcard' + (cur[k] ? ' on' : ''), type: 'button', 'aria-pressed': String(!!cur[k]),
-      onclick: () => { cur[k] = !cur[k]; window.GestTheme.set({mods: Object.assign({}, cur)}); render(true); }},
-      h('span', {class: 'mi'}, svg(ICON[icon], 22)), h('span', null, h('b', null, name), h('small', null, sub)), h('span', {class: 'ck'}, cur[k] ? svg(ICON.check, 14) : null)));
-    main.replaceChildren(h('div', {class: 'onb-box', style: 'justify-items:stretch;text-align:left'},
-      h('div', null, h('h2', null, 'O que queres usar?'), h('p', {class: 'lead', style: 'max-width:none;margin-top:6px'}, 'Escolhe o que te faz falta. Podes mudar quando quiseres, em Mais opções › Aspeto e módulos. Nada se perde.')),
-      ...cards, h('button', {class: 'btn green block', type: 'button', onclick: () => { S.onb = 'start'; render(); window.scrollTo(0, 0); }}, 'Continuar')));
+      h('ul', {class: 'feats'}, feat('lock', 'Privado', 'os dados nunca saem do telemóvel'), feat('wifioff', 'Offline', 'funciona em qualquer lado')),
+      h('button', {class: 'btn green block', type: 'button', onclick: () => { S.onb = 'start'; render(); window.scrollTo(0, 0); }}, 'Começar')));
   } else {
     main.replaceChildren(h('div', {class: 'onb-box', style: 'justify-items:stretch;text-align:left'},
       h('div', null, h('h2', null, 'Como queres começar?'), h('p', {class: 'lead', style: 'max-width:none;margin-top:6px'}, 'Os dados ficam guardados só neste telemóvel.')),
       h('button', {class: 'modcard', type: 'button', onclick: pickFiles}, h('span', {class: 'mi'}, svg(ICON.upload, 22)), h('span', null, h('b', null, 'Importar do PC'), h('small', null, 'Escolhe o inventario.json e o tags.json (e, se tiveres, um backup do Gest)'))),
       h('button', {class: 'modcard', type: 'button', onclick: startEmpty}, h('span', {class: 'mi'}, svg(ICON.plus, 22)), h('span', null, h('b', null, 'Começar do zero'), h('small', null, 'Cria as tuas pastas e peças aqui'))),
-      h('button', {class: 'btn gray block', type: 'button', onclick: () => { S.onb = 'mods'; render(); }}, 'Voltar')));
+      h('button', {class: 'btn gray block', type: 'button', onclick: () => { S.onb = 'welcome'; render(); }}, 'Voltar')));
   }
 }
 
@@ -1604,7 +1594,7 @@ function readLabels(d) {
   }
   return {library, assignments};
 }
-const modOn = k => ((window.GestTheme.get().mods || {})[k]) !== false;
+const modOn = () => true;   // a app usa sempre todos os módulos (kits, lotes, etiquetas e tags)
 const labelsOf = path => S.labels.assignments[pkey(path)] || {};
 const labelChipTexts = path => Object.entries(labelsOf(path)).map(([n, v]) => v ? `${n} ${v}` : n);
 
